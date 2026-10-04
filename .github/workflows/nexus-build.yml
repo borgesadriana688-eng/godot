@@ -71,7 +71,7 @@ jobs:
             platform/android/java/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
 
-android-editor-32:
+  android-editor-32:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
