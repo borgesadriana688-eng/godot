@@ -121,6 +121,7 @@
 #include "editor/plugins/editor_plugin.h"
 #include "editor/plugins/editor_plugin_list.h"
 #include "editor/plugins/editor_resource_conversion_plugin.h"
+#include "editor/plugins/nex_ai_chat_plugin.h"
 #include "editor/plugins/plugin_config_dialog.h"
 #include "editor/project_upgrade/project_upgrade_tool.h"
 #include "editor/run/editor_run.h"
@@ -9501,6 +9502,7 @@ EditorNode::EditorNode() {
 	add_child(audio_preview_gen);
 
 	add_editor_plugin(memnew(DebuggerEditorPlugin(debug_menu)));
+	add_editor_plugin(memnew(NexAIChatPlugin));
 
 	disk_changed = memnew(ConfirmationDialog);
 	{

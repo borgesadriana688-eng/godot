@@ -98,4 +98,6 @@ Se o dev digitar qualquer palavra da lista proibida, a NEX NÃO FAZ e responde c
 
 ---
 
-*Implementação do módulo: planejada para versões futuras da Nexus Engine.*
+*Status da implementação (04/10/2026):*
+*✅ JÁ IMPLEMENTADO no editor (v0.1): painel de chat dock lateral "NEX", trava anti-cópia funcional com a lista completa de jogos famosos, fluxo de permissão com botões [SIM, PODE FAZER] / [NÃO, SÓ ME EXPLICA] dentro do chat, e saldo de créditos no rodapé (∞ para a conta do dono).*
+*🚧 Em desenvolvimento: conexão da NEX com um cérebro de IA de verdade (pra ela editar as cenas ao vivo e criar colisão/armas/animações/servidor sozinha).*
