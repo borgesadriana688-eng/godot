@@ -42,9 +42,12 @@ jobs:
       - name: Aceitar licencas e instalar NDK r29
         shell: bash
         run: |
+          set +o pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses > /dev/null || true
-          yes | "$SDKMANAGER" "ndk;29.0.14206865" > /dev/null
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMANAGER" "ndk;29.0.14206865" > /dev/null 2>&1 || true
+          test -d "$ANDROID_HOME/ndk/29.0.14206865" || { echo "::error::NDK 29 nao foi instalado"; exit 1; }
+          echo "NDK r29 OK"
 
       - name: Compilar editor Android arm64
         run: scons platform=android target=editor arch=arm64 production=yes swappy=no profiler=none accesskit=no -j4
@@ -83,9 +86,12 @@ jobs:
       - name: Aceitar licencas e instalar NDK r29
         shell: bash
         run: |
+          set +o pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses > /dev/null || true
-          yes | "$SDKMANAGER" "ndk;29.0.14206865" > /dev/null
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMANAGER" "ndk;29.0.14206865" > /dev/null 2>&1 || true
+          test -d "$ANDROID_HOME/ndk/29.0.14206865" || { echo "::error::NDK 29 nao foi instalado"; exit 1; }
+          echo "NDK r29 OK"
 
       - name: Compilar template arm64
         run: scons platform=android target=template_release arch=arm64 swappy=no profiler=none accesskit=no -j4
