@@ -21,3 +21,47 @@ jobs:
         with:
           name: nexus-engine-windows-editor
           path: bin/
+
+  android-templates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: pip install scons
+
+      - name: Aceitar licencas e instalar NDK r29
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          yes | "$SDKMANAGER" "ndk;29.0.14206865" > /dev/null
+
+      - name: Compilar template arm64
+        run: scons platform=android target=template_release arch=arm64 swappy=no profiler=none accesskit=no -j4
+
+      - name: Compilar template arm32
+        run: scons platform=android target=template_release arch=arm32 swappy=no profiler=none accesskit=no -j4
+
+      - name: Gerar templates Android (APK)
+        run: |
+          cd platform/android/java
+          chmod +x gradlew
+          ./gradlew generateGodotTemplates
+          cd ../..
+          ls -l bin/
+
+      - name: Publicar templates
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-engine-android-templates
+          path: bin/
