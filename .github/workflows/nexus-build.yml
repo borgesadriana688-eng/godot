@@ -36,6 +36,7 @@ jobs:
           path: bin/
 
   android-editor:
+    if: github.event_name == 'workflow_dispatch' && inputs.full == true
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -92,7 +93,6 @@ jobs:
           if-no-files-found: error
 
   android-editor-32:
-    if: github.event_name == 'workflow_dispatch' && inputs.full == true
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
