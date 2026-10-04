@@ -9,8 +9,16 @@ A primeira Engine com IA integrada que **ensina e FAZ o jogo se o dev permitir**
 **NEX**
 
 ## 3. COMO APARECE
-Um chat roxo no canto inferior direito da engine.
+A NEX vive num **CHAT DOCK LATERAL** colado na lateral do editor (pode recolher e abrir de novo).
+O dev digita o que quer direto no chat, tipo conversar com um colega do lado.
 Logo da NEXUS pequeno piscando quando tá pensando.
+
+### 3.1 O CHAT DOCK
+1. Painel de chat fixo na lateral da tela (recolhível), com tema roxo da NEXUS.
+2. Campo de texto embaixo: o dev escreve pedidos em português normal, ex: *"faz um mapa pra pvp"*.
+3. As mensagens da NEX aparecem no chat em tempo real, mostrando o que ela tá fazendo.
+4. Botões de permissão ([SIM, PODE FAZER] / [NÃO, SÓ ME EXPLICA]) aparecem direto dentro do chat.
+5. Quando ela mexe na cena, o dev vê a mudança acontecendo ao vivo na janela principal, do lado do chat.
 
 ## 4. O QUE O DEV FALA E O QUE A NEX FAZ
 
@@ -39,6 +47,15 @@ Depois que o dev permite, a NEX **mexe no projeto AO VIVO, na frente dele**:
 3. Enquanto mexe, ela mostra o que tá fazendo em tempo real no chat: *"Adicionando CollisionShape3D... Ajustando o tamanho da caixa... Pronto!"*
 4. Quando termina, ela AVISA: *"Prontinho! Colisão adicionada na parede. Quer que eu ajuste mais alguma coisa?"*
 5. Se o dev tiver dúvida depois (ex: *"pq essa colisão não tá pegando?"*), a NEX explica o que fez e como funciona, porque ela lembra de todas as ações que executou no projeto.
+
+### EXEMPLO COMPLETO (mapa PvP)
+> Dev (no chat lateral): *"faz um mapa pra pvp"*
+
+1. NEX: *"Posso fazer! Vou criar uma arena PvP com paredes, rampas, spawns e colisão. Pode?*" → [SIM, PODE FAZER]
+2. Dev clica em SIM.
+3. NEX (mexendo ao vivo, passo a passo no chat): *"Criando a cena da arena...*" → *"Colocando as paredes com colisão...*" → *"Adicionando as rampas...*" → *"Marcando os pontos de spawn dos times...*" → *"Ajustando a iluminação..."
+4. NEX: *"Prontinho! Mapa PvP criado. Quer que eu adicione arma e mira agora?"*
+5. O dev pode pedir o próximo passo direto no chat: *"adiciona arma"* e o ciclo recomeça.
 
 ## 6. TRAVA ANTI-CÓPIA (BLINDAGEM)
 Se o dev digitar qualquer palavra da lista proibida, a NEX NÃO FAZ e responde com criatividade.
