@@ -33,6 +33,19 @@ Logo da NEXUS pequeno piscando quando tá pensando.
 **Dev:** "faz personagem pular"
 **NEX:** "Quer que eu já coloque o script de pulo nele? [PERMITIR]"
 
+### 4.1 CAPACIDADES COMPLETAS DA NEX
+A NEX faz TUDO que envolve o jogo, sempre com permissão e ao vivo:
+1. **Colisão:** paredes, chão, objetos, zonas de dano
+2. **Armas:** criar arma do zero, animação de tiro, recarga, mira, dano
+3. **Animações:** andar, correr, pular, atacar, morrer (Idle/Walk/Run)
+4. **Movimento:** controle do personagem, correr, pular, agachar, joystick mobile
+5. **Mapas e cenas:** mapas PvP, arenas, spawns, iluminação
+6. **Scripts:** lógica do jogo, sistemas (vida, score, inventário)
+7. **Até SERVIDOR do jogo:** se o dev pedir, a NEX configura o servidor do jogo (multiplayer)
+
+**Dev:** "faz o servidor do meu jogo"
+**NEX:** "Criei um servidor multiplayer com salas e sincronização. Pode? [SIM, PODE FAZER]"
+
 ## 5. SISTEMA DE PERMISSÃO (MUITO IMPORTANTE)
 Toda vez que a NEX for MEXER no projeto, ela tem que pedir:
 > "NEX quer adicionar [AÇÃO] no seu projeto. Você permite?"
@@ -73,6 +86,7 @@ Se o dev digitar qualquer palavra da lista proibida, a NEX NÃO FAZ e responde c
 > "Não posso copiar jogos de outras empresas pra te proteger de processo, mas posso te ajudar a criar um jogo AINDA MELHOR com sua cara. Bora criar um [NOME DO GÊNERO] original?"
 
 ## 7. LIMITES E CRÉDITOS DO CHAT BOT
+0. **CONTA DO BRAYAN (DONO): CRÉDITOS ILIMITADOS, SEMPRE.** A conta do dono da NEXUS nunca gasta nem acaba. O saldo dela mostra ∞.
 1. **Limite de objetos:** a NEX pode adicionar até **100.000 objetos por pedido** (máximo). Se o dev pedir mais que isso, ela divide em etapas e avisa: *"Vou fazer em partes pra não travar, tá?"*
 2. **Sistema de créditos:** cada coisa que o dev pede no chat **gasta créditos** (criar mapa, adicionar arma, mexer em script, etc). Ações simples gastam pouco, coisas grandes (mapa inteiro, 100 mil objetos) gastam mais.
 3. **Login com Google:** pra conseguir créditos, o dev tem que **entrar com a conta Google** na NEXUS. Sem login, o chat funciona só em modo explicar (NÃO mexe no projeto).
