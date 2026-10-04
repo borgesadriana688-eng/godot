@@ -359,7 +359,7 @@ EditorThemeManager::ThemeConfiguration EditorThemeManager::_create_theme_config(
 				preset_contrast = light_contrast;
 			} else { // Default
 				preset_accent_color = Color(0.659, 0.333, 0.969); // Nexus Engine purple (#a855f7)
-				preset_base_color = Color(0.1, 0.09, 0.12); // Dark purple-tinted base
+				preset_base_color = Color(0.129, 0.102, 0.165); // Clearly purple-tinted dark base, kept dark enough for text contrast
 			}
 
 			config.accent_color = preset_accent_color;
