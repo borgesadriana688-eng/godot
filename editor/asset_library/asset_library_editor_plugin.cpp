@@ -419,11 +419,11 @@ void EditorAssetLibraryItemDescription::_version_selected(int p_index) {
 	if (show_warning) {
 		String tooltip;
 		if (!compat_min.is_empty() && !compat_max.is_empty()) {
-			tooltip += vformat(TTR("This release is only compatible with Godot versions between %s and %s."), compat_min, compat_max);
+			tooltip += vformat(TTR("This release is only compatible with Nexus Engine versions between %s and %s."), compat_min, compat_max);
 		} else if (!compat_min.is_empty()) {
-			tooltip += vformat(TTR("This release is only compatible with Godot version %s and newer."), compat_min);
+			tooltip += vformat(TTR("This release is only compatible with Nexus Engine version %s and newer."), compat_min);
 		} else {
-			tooltip += vformat(TTR("This release is only compatible with Godot version %s and older."), compat_max);
+			tooltip += vformat(TTR("This release is only compatible with Nexus Engine version %s and older."), compat_max);
 		}
 
 		tooltip += "\n";

@@ -31,6 +31,15 @@ Toda vez que a NEX for MEXER no projeto, ela tem que pedir:
 
 Botões: [SIM, PODE FAZER] [NÃO, SÓ ME EXPLICA]
 
+## 5.1 MODO AO VIVO
+Depois que o dev permite, a NEX **mexe no projeto AO VIVO, na frente dele**:
+
+1. A NEX avisa o que vai fazer: *"Beleza! Vou adicionar a colisão na parede agora."*
+2. Ela executa a ação passo a passo, e o dev VÊ cada mudança acontecendo na cena na hora (a caixa roxa aparecendo, o nó entrando na árvore, o script sendo colado).
+3. Enquanto mexe, ela mostra o que tá fazendo em tempo real no chat: *"Adicionando CollisionShape3D... Ajustando o tamanho da caixa... Pronto!"*
+4. Quando termina, ela AVISA: *"Prontinho! Colisão adicionada na parede. Quer que eu ajuste mais alguma coisa?"*
+5. Se o dev tiver dúvida depois (ex: *"pq essa colisão não tá pegando?"*), a NEX explica o que fez e como funciona, porque ela lembra de todas as ações que executou no projeto.
+
 ## 6. TRAVA ANTI-CÓPIA (BLINDAGEM)
 Se o dev digitar qualquer palavra da lista proibida, a NEX NÃO FAZ e responde com criatividade.
 
