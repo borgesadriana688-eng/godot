@@ -1,0 +1,23 @@
+name: Build Nexus Engine
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  windows-editor:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install scons
+      - name: Compilar Nexus Editor
+        shell: bash
+        run: scons platform=windows target=editor production=yes d3d12=no -j4
+      - name: Publicar binario
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-engine-windows-editor
+          path: bin/
