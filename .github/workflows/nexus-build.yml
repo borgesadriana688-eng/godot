@@ -71,6 +71,55 @@ jobs:
             platform/android/java/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
 
+android-editor-32:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: pip install scons
+
+      - name: Aceitar licencas e instalar NDK r29
+        shell: bash
+        run: |
+          set +o pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMANAGER" "ndk;29.0.14206865" > /dev/null 2>&1 || true
+          test -d "$ANDROID_HOME/ndk/29.0.14206865" || { echo "::error::NDK 29 nao foi instalado"; exit 1; }
+          echo "NDK r29 OK"
+
+      - name: Compilar editor Android arm32
+        run: scons platform=android target=editor arch=arm32 production=yes swappy=no profiler=none accesskit=no -j4
+
+      - name: Gerar APK do Nexus Editor 32 bits
+        run: |
+          cd platform/android/java
+          chmod +x gradlew
+          ./gradlew generateGodotEditor
+          ./gradlew :editor:assembleAndroidDebug
+          cd ../..
+          find . \( -name "*.apk" -o -name "*.aab" \) -not -path "*intermediates*" || true
+
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-engine-android-editor-apk-32
+          path: |
+            bin/**
+            platform/android/java/editor/build/outputs/apk/**/*.apk
+            platform/android/java/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
   android-templates:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
