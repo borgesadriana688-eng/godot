@@ -3,19 +3,32 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      full:
+        description: 'Build completo (Windows + editor 32 bits)'
+        type: boolean
+        default: false
 
 jobs:
   windows-editor:
+    if: github.event_name == 'workflow_dispatch' && inputs.full == true
     runs-on: windows-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - run: pip install scons
+      - name: Cache SCons
+        uses: actions/cache@v4
+        with:
+          path: .scons_cache
+          key: scons-windows-${{ github.sha }}
+          restore-keys: scons-windows-
       - name: Compilar Nexus Editor
         shell: bash
-        run: scons platform=windows target=editor production=yes d3d12=no -j4
+        run: scons platform=windows target=editor production=yes d3d12=no cache_path=.scons_cache -j4
       - name: Publicar binario
         uses: actions/upload-artifact@v4
         with:
@@ -49,8 +62,15 @@ jobs:
           test -d "$ANDROID_HOME/ndk/29.0.14206865" || { echo "::error::NDK 29 nao foi instalado"; exit 1; }
           echo "NDK r29 OK"
 
+      - name: Cache SCons (editor arm64)
+        uses: actions/cache@v4
+        with:
+          path: .scons_cache
+          key: scons-android-editor-arm64-${{ github.sha }}
+          restore-keys: scons-android-editor-arm64-
+
       - name: Compilar editor Android arm64
-        run: scons platform=android target=editor arch=arm64 production=yes swappy=no profiler=none accesskit=no -j4
+        run: scons platform=android target=editor arch=arm64 production=yes swappy=no profiler=none accesskit=no cache_path=.scons_cache -j4
 
       - name: Gerar APK do Nexus Editor
         run: |
@@ -72,6 +92,7 @@ jobs:
           if-no-files-found: error
 
   android-editor-32:
+    if: github.event_name == 'workflow_dispatch' && inputs.full == true
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -98,8 +119,15 @@ jobs:
           test -d "$ANDROID_HOME/ndk/29.0.14206865" || { echo "::error::NDK 29 nao foi instalado"; exit 1; }
           echo "NDK r29 OK"
 
+      - name: Cache SCons (editor arm32)
+        uses: actions/cache@v4
+        with:
+          path: .scons_cache
+          key: scons-android-editor-arm32-${{ github.sha }}
+          restore-keys: scons-android-editor-arm32-
+
       - name: Compilar editor Android arm32
-        run: scons platform=android target=editor arch=arm32 production=yes swappy=no profiler=none accesskit=no -j4
+        run: scons platform=android target=editor arch=arm32 production=yes swappy=no profiler=none accesskit=no cache_path=.scons_cache -j4
 
       - name: Gerar APK do Nexus Editor 32 bits
         run: |
@@ -147,11 +175,18 @@ jobs:
           test -d "$ANDROID_HOME/ndk/29.0.14206865" || { echo "::error::NDK 29 nao foi instalado"; exit 1; }
           echo "NDK r29 OK"
 
+      - name: Cache SCons (templates)
+        uses: actions/cache@v4
+        with:
+          path: .scons_cache
+          key: scons-android-templates-${{ github.sha }}
+          restore-keys: scons-android-templates-
+
       - name: Compilar template arm64
-        run: scons platform=android target=template_release arch=arm64 swappy=no profiler=none accesskit=no -j4
+        run: scons platform=android target=template_release arch=arm64 swappy=no profiler=none accesskit=no cache_path=.scons_cache -j4
 
       - name: Compilar template arm32
-        run: scons platform=android target=template_release arch=arm32 swappy=no profiler=none accesskit=no -j4
+        run: scons platform=android target=template_release arch=arm32 swappy=no profiler=none accesskit=no cache_path=.scons_cache -j4
 
       - name: Gerar templates Android (APK)
         run: |

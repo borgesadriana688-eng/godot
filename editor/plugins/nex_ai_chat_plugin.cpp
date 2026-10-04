@@ -6,17 +6,16 @@
 
 #include "editor/plugins/nex_ai_chat_plugin.h"
 
-#include "core/color.h"
-#include "core/object/callable_method_pointer.h"
+#include "core/math/color.h"
+#include "core/object/callable_mp.h"
 #include "core/variant/variant.h"
 #include "core/string/ustring.h"
 #include "editor/plugins/editor_plugin.h"
 #include "scene/gui/button.h"
-#include "scene/gui/h_box_container.h"
+#include "scene/gui/box_container.h"
 #include "scene/gui/label.h"
 #include "scene/gui/line_edit.h"
 #include "scene/gui/rich_text_label.h"
-#include "scene/gui/v_box_container.h"
 
 static const Color NEX_PURPLE(0.659f, 0.333f, 0.969f, 1.0f);
 static const Color NEX_PURPLE_LIGHT(0.769f, 0.518f, 0.988f, 1.0f);
