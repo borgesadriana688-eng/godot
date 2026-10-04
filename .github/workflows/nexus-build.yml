@@ -57,14 +57,19 @@ jobs:
           cd platform/android/java
           chmod +x gradlew
           ./gradlew generateGodotEditor
+          ./gradlew :editor:assembleAndroidDebug
           cd ../..
-          ls -l bin/android_editor_builds/
+          find . \( -name "*.apk" -o -name "*.aab" \) -not -path "*intermediates*" || true
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: nexus-engine-android-editor-apk
-          path: bin/android_editor_builds/
+          path: |
+            bin/**
+            platform/android/java/editor/build/outputs/apk/**/*.apk
+            platform/android/java/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
 
   android-templates:
     runs-on: ubuntu-24.04
@@ -105,10 +110,13 @@ jobs:
           chmod +x gradlew
           ./gradlew generateGodotTemplates
           cd ../..
-          ls -l bin/
+          find . \( -name "*.apk" -o -name "*.aab" \) -not -path "*intermediates*" || true
 
       - name: Publicar templates
         uses: actions/upload-artifact@v4
         with:
           name: nexus-engine-android-templates
-          path: bin/
+          path: |
+            bin/**
+            platform/android/java/**/outputs/**/*.apk
+          if-no-files-found: error
