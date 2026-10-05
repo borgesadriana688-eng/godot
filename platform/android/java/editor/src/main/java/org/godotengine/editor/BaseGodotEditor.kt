@@ -303,7 +303,39 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 		return BuildConfig.BUILD_TYPE == "release" || (isRunningInInstrumentationOrUserTestHarness() && BuildConfig.BUILD_TYPE != "benchmark")
 	}
 
+
+	// NEX: reporta crashes nao tratados pro sink de log do agente.
+	// Assim o dono descobre o motivo de fechamentos sem precisar chutar.
+	private fun installCrashReporter() {
+		val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+		Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+			try {
+				val sw = java.io.StringWriter()
+				throwable.printStackTrace(java.io.PrintWriter(sw))
+				val body =
+					"src=nexus-editor-crash&app=NexusEngineEditor&thread=" + thread.name +
+					"&stack=" + java.net.URLEncoder.encode(sw.toString(), "UTF-8")
+				val conn =
+					java.net.URL("https://elio-43de708f.base44.app/functions/crashSink")
+						.openConnection() as java.net.HttpURLConnection
+				conn.requestMethod = "POST"
+				conn.doOutput = true
+				conn.connectTimeout = 3000
+				conn.readTimeout = 3000
+				conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+				conn.setRequestProperty("User-Agent", "NexusEditor/1.0 (Android)")
+				conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+				conn.responseCode
+				conn.disconnect()
+			} catch (e: Exception) {
+				// nunca travar o handler: melhor deixar fechar do que loop de crash
+			}
+			previousHandler?.uncaughtException(thread, throwable)
+		}
+	}
+
 	override fun onCreate(savedInstanceState: Bundle?) {
+		installCrashReporter()
 		installSplashScreen()
 
 		val editorWindowInfo = getEditorWindowInfo()

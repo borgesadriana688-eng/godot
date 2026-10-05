@@ -1,6 +1,7 @@
 /**************************************************************************/
 /*  nex_ai_chat_plugin.h                                                  */
-/*  NEX AI — Nexus Engine                                                  */
+/*  NEX AI — chat dock lateral da Nexus Engine                             */
+/*  Spec: NEX_AI.md (documento oficial do módulo NEX)                      */
 /**************************************************************************/
 
 #ifndef NEX_AI_CHAT_PLUGIN_H
@@ -8,37 +9,68 @@
 
 #include "editor/plugins/editor_plugin.h"
 
-class VBoxContainer;
-class HBoxContainer;
-class RichTextLabel;
-class LineEdit;
-class Button;
-class Label;
+#include "core/math/color.h"
+#include "core/templates/vector.h"
+#include "scene/gui/box_container.h"
+#include "scene/gui/button.h"
+#include "scene/gui/label.h"
+#include "scene/gui/line_edit.h"
+#include "scene/gui/rich_text_label.h"
 
 class NexAIChatPlugin : public EditorPlugin {
-	GDCLASS(NexAIChatPlugin, EditorPlugin);
+	GDCLASS(NexAIChatPlugin, EditorPlugin)
 
+public:
+	// O que a NEX vai executar no modo ao vivo.
+	enum PendingAction {
+		ACTION_NONE,
+		ACTION_MAP,
+		ACTION_COLLISION,
+		ACTION_WEAPON,
+		ACTION_HUD,
+		ACTION_LOBBY,
+		ACTION_GENERIC,
+	};
+
+private:
 	VBoxContainer *panel = nullptr;
-	RichTextLabel *chat = nullptr;
-	LineEdit *input = nullptr;
-	HBoxContainer *perm_row = nullptr;
 	HBoxContainer *quick_row = nullptr;
 	HBoxContainer *quick_row2 = nullptr;
+	RichTextLabel *chat = nullptr;
+	HBoxContainer *perm_row = nullptr;
 	Button *btn_yes = nullptr;
 	Button *btn_no = nullptr;
-	Button *btn_help = nullptr;
+	LineEdit *input = nullptr;
 	Label *credits = nullptr;
 
-	void _append_chat(const String &p_who, const String &p_text, const Color &p_color);
-	void _process_message(const String &p_text);
-	void _on_permission(bool p_allow);
-	void _show_tutorial();
+	PendingAction pending_action = ACTION_NONE;
+	String pending_text;
+
+	// Fila de passos do modo ao vivo (executados um por vez com pausa,
+	// narrando no chat, pra dar o efeito "fazendo na tela").
+	Vector<String> live_narrations;
+	Vector<int> live_kinds; // ver switch em _live_next_step()
+	int live_index = 0;
+	int live_total = 0;
+
 	Button *_make_quick_button(const String &p_label, const String &p_message);
+	void _append_chat(const String &p_who, const String &p_text, const Color &p_color);
+	void _show_tutorial();
+	void _process_message(const String &p_text);
+	void _answer_question(const String &p_low);
+	void _classify_and_ask(const String &p_low);
+	void _on_permission(bool p_allow);
+	void _start_live();
+	void _live_next_step();
+	void _queue_live(int p_kind, const String &p_narration);
+	bool _add_node_live(Node *p_parent, Node *p_child, const String &p_action_name);
+	Node *_scene_root_3d_check();
 
 protected:
 	static void _bind_methods() {}
 
 public:
+	void _notification(int p_what);
 	NexAIChatPlugin();
 };
 
