@@ -11,6 +11,7 @@
 #include "core/math/color.h"
 #include "core/object/callable_mp.h"
 #include "core/variant/variant.h"
+#include "core/string/node_path.h"
 #include "core/string/ustring.h"
 #include "editor/editor_data.h"
 #include "editor/editor_node.h"
@@ -29,6 +30,7 @@
 #include "scene/gui/line_edit.h"
 #include "scene/gui/rich_text_label.h"
 #include "scene/main/canvas_layer.h"
+#include "scene/main/scene_tree.h"
 #include "scene/main/node.h"
 #include "scene/resources/3d/box_shape_3d.h"
 #include "scene/resources/3d/primitive_meshes.h"
@@ -420,8 +422,8 @@ void NexAIChatPlugin::_live_next_step() {
 
 	Node *root = EditorNode::get_singleton()->get_edited_scene();
 	Node *mapa = nullptr;
-	if (root != nullptr && root->has_node("Mapa_PvP")) {
-		mapa = root->get_node("Mapa_PvP");
+	if (root != nullptr && root->has_node(NodePath("Mapa_PvP"))) {
+		mapa = root->get_node(NodePath("Mapa_PvP"));
 	}
 
 	switch (kind) {
