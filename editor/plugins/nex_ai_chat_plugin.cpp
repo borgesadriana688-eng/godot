@@ -20,35 +20,75 @@
 static const Color NEX_PURPLE(0.659f, 0.333f, 0.969f, 1.0f);
 static const Color NEX_PURPLE_LIGHT(0.769f, 0.518f, 0.988f, 1.0f);
 
+Button *NexAIChatPlugin::_make_quick_button(const String &p_label, const String &p_message) {
+	Button *b = memnew(Button);
+	b->set_text(p_label);
+	b->set_custom_minimum_size(Size2(0, 44)); // alvo de toque confortavel no celular
+	b->add_theme_font_size_override("font_size", 15);
+	b->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	if (p_message == "__HELP__") {
+		b->connect("pressed", callable_mp(this, &NexAIChatPlugin::_show_tutorial));
+	} else {
+		b->connect("pressed", callable_mp(this, &NexAIChatPlugin::_process_message).bind(p_message));
+	}
+	return b;
+}
+
 NexAIChatPlugin::NexAIChatPlugin() {
 	panel = memnew(VBoxContainer);
 	panel->set_name(TTR("NEX"));
 	panel->set_custom_minimum_size(Size2(340, 0));
+	panel->add_theme_constant_override("separation", 10);
 
-	// Titulo.
+	// Titulo (bem grande, facil de ler no celular).
 	Label *title = memnew(Label);
-	title->set_text(TTR("NEX — Nexus Engine"));
+	title->set_text(TTR("🟣 NEX — sua ajudante"));
 	title->add_theme_color_override("font_color", NEX_PURPLE_LIGHT);
-	title->add_theme_font_size_override("font_size", 20);
+	title->add_theme_font_size_override("font_size", 22);
 	panel->add_child(title);
 
-	// Historico do chat.
+	// Subtitulo simples explicando o basico.
+	Label *subtitle = memnew(Label);
+	subtitle->set_text(TTR("Toque num botão abaixo ou escreva o que quiser."));
+	subtitle->add_theme_font_size_override("font_size", 14);
+	subtitle->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
+	panel->add_child(subtitle);
+
+	// Botoes rapidos (nao precisa digitar nada pra comecar).
+	quick_row = memnew(HBoxContainer);
+	quick_row->add_theme_constant_override("separation", 6);
+	quick_row->add_child(_make_quick_button(TTR("🗺️ Mapa"), TTR("cria um mapa simples pra eu testar")));
+	quick_row->add_child(_make_quick_button(TTR("💥 Colisão"), TTR("adiciona colisão no cenário")));
+	quick_row->add_child(_make_quick_button(TTR("🔫 Arma"), TTR("cria uma arma básica")));
+	quick_row->add_child(_make_quick_button(TTR("❓ Ajuda"), "__HELP__"));
+	panel->add_child(quick_row);
+
+	// Historico do chat (fonte maior, mais facil de ler).
 	chat = memnew(RichTextLabel);
 	chat->set_use_bbcode(true);
 	chat->set_fit_content(true);
 	chat->set_scroll_follow(true);
 	chat->set_custom_minimum_size(Size2(0, 300));
 	chat->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	chat->add_theme_font_size_override("normal_font_size", 16);
+	chat->add_theme_font_size_override("bold_font_size", 16);
 	panel->add_child(chat);
 
 	// Botoes de permissao (aparecem dentro do chat quando a NEX pede).
 	perm_row = memnew(HBoxContainer);
+	perm_row->add_theme_constant_override("separation", 6);
 	btn_yes = memnew(Button);
-	btn_yes->set_text(TTR("SIM, PODE FAZER"));
+	btn_yes->set_text(TTR("✅ SIM, PODE FAZER"));
+	btn_yes->set_custom_minimum_size(Size2(0, 48));
+	btn_yes->add_theme_font_size_override("font_size", 16);
 	btn_yes->add_theme_color_override("font_color", NEX_PURPLE_LIGHT);
+	btn_yes->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	perm_row->add_child(btn_yes);
 	btn_no = memnew(Button);
-	btn_no->set_text(TTR("NÃO, SÓ ME EXPLICA"));
+	btn_no->set_text(TTR("❌ NÃO, SÓ EXPLICA"));
+	btn_no->set_custom_minimum_size(Size2(0, 48));
+	btn_no->add_theme_font_size_override("font_size", 16);
+	btn_no->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	perm_row->add_child(btn_no);
 	perm_row->hide();
 	panel->add_child(perm_row);
@@ -56,16 +96,21 @@ NexAIChatPlugin::NexAIChatPlugin() {
 	btn_yes->connect("pressed", callable_mp(this, &NexAIChatPlugin::_on_permission).bind(true));
 	btn_no->connect("pressed", callable_mp(this, &NexAIChatPlugin::_on_permission).bind(false));
 
-	// Campo de entrada + botao enviar.
+	// Campo de entrada + botao enviar (maiores, mais faceis de tocar).
 	HBoxContainer *entry_row = memnew(HBoxContainer);
+	entry_row->add_theme_constant_override("separation", 6);
 	input = memnew(LineEdit);
-	input->set_placeholder(TTR("Fale com a NEX... ex: faz um mapa pra pvp"));
+	input->set_placeholder(TTR("Ou escreva aqui o que você quer..."));
+	input->set_custom_minimum_size(Size2(0, 44));
+	input->add_theme_font_size_override("font_size", 16);
 	input->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	input->connect("text_submitted", callable_mp(this, &NexAIChatPlugin::_process_message));
 	entry_row->add_child(input);
 
 	Button *send = memnew(Button);
 	send->set_text(TTR("Enviar"));
+	send->set_custom_minimum_size(Size2(70, 44));
+	send->add_theme_font_size_override("font_size", 16);
 	send->connect("pressed", callable_mp(this, &NexAIChatPlugin::_process_message).bind(String()));
 	entry_row->add_child(send);
 	panel->add_child(entry_row);
@@ -79,13 +124,23 @@ NexAIChatPlugin::NexAIChatPlugin() {
 
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, panel);
 
-	// Boas-vindas.
-	_append_chat("NEX", TTR("Oi! Eu sou a NEX, a IA da Nexus Engine e sua parceira de criação. 🟣\n\nPode me pedir qualquer coisa em português: colisão, arma, animação, mapa PvP, movimento, até o servidor do seu jogo.\n\nEu peço permissão antes de mexer em tudo e trabalho ao vivo, mostrando cada passo."), NEX_PURPLE_LIGHT);
+	// Boas-vindas simples e direta.
+	_append_chat("NEX", TTR("Oi! Eu sou a NEX. 🟣\n\nToque num botão aí acima (Mapa, Colisão, Arma) pra eu começar, ou escreva o que você quiser lá na caixa de texto. Toque em \"❓ Ajuda\" se quiser o passo a passo."), NEX_PURPLE_LIGHT);
 }
 
 void NexAIChatPlugin::_append_chat(const String &p_who, const String &p_text, const Color &p_color) {
 	String color_hex = p_color.to_html(false);
 	chat->append_text("[color=#" + color_hex + "][b]" + p_who + ":[/b][/color] " + p_text + "\n\n");
+}
+
+void NexAIChatPlugin::_show_tutorial() {
+	_append_chat("NEX", TTR(
+			"📘 Tutorial rápido:\n\n"
+			"1️⃣ Toque num botão roxo (Mapa, Colisão ou Arma) OU escreva o que você quer na caixinha de baixo.\n\n"
+			"2️⃣ Eu respondo perguntando se pode. Toque em \"✅ SIM, PODE FAZER\" pra eu seguir, ou \"❌ NÃO\" se só quiser aprender a fazer na mão.\n\n"
+			"3️⃣ Prontinho! Eu aviso quando terminar.\n\n"
+			"Lembrete: eu não copio jogos famosos (Free Fire, Roblox, etc), mas te ajudo a criar um original parecido do seu jeito. 🎮"),
+			NEX_PURPLE_LIGHT);
 }
 
 void NexAIChatPlugin::_process_message(const String &p_text) {

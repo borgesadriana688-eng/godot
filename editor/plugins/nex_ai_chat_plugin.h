@@ -22,13 +22,17 @@ class NexAIChatPlugin : public EditorPlugin {
 	RichTextLabel *chat = nullptr;
 	LineEdit *input = nullptr;
 	HBoxContainer *perm_row = nullptr;
+	HBoxContainer *quick_row = nullptr;
 	Button *btn_yes = nullptr;
 	Button *btn_no = nullptr;
+	Button *btn_help = nullptr;
 	Label *credits = nullptr;
 
 	void _append_chat(const String &p_who, const String &p_text, const Color &p_color);
 	void _process_message(const String &p_text);
 	void _on_permission(bool p_allow);
+	void _show_tutorial();
+	Button *_make_quick_button(const String &p_label, const String &p_message);
 
 protected:
 	static void _bind_methods() {}
