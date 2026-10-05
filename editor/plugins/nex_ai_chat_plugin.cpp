@@ -23,7 +23,6 @@
 #include "scene/3d/physics/static_body_3d.h"
 #include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
-#include "scene/gui/canvas_item.h"
 #include "scene/gui/color_rect.h"
 #include "scene/gui/control.h"
 #include "scene/gui/label.h"
