@@ -23,6 +23,7 @@ class NexAIChatPlugin : public EditorPlugin {
 	LineEdit *input = nullptr;
 	HBoxContainer *perm_row = nullptr;
 	HBoxContainer *quick_row = nullptr;
+	HBoxContainer *quick_row2 = nullptr;
 	Button *btn_yes = nullptr;
 	Button *btn_no = nullptr;
 	Button *btn_help = nullptr;

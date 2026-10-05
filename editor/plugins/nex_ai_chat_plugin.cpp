@@ -60,8 +60,15 @@ NexAIChatPlugin::NexAIChatPlugin() {
 	quick_row->add_child(_make_quick_button(TTR("🗺️ Mapa"), TTR("cria um mapa simples pra eu testar")));
 	quick_row->add_child(_make_quick_button(TTR("💥 Colisão"), TTR("adiciona colisão no cenário")));
 	quick_row->add_child(_make_quick_button(TTR("🔫 Arma"), TTR("cria uma arma básica")));
-	quick_row->add_child(_make_quick_button(TTR("❓ Ajuda"), "__HELP__"));
 	panel->add_child(quick_row);
+
+	// Segunda fileira de atalhos.
+	quick_row2 = memnew(HBoxContainer);
+	quick_row2->add_theme_constant_override("separation", 6);
+	quick_row2->add_child(_make_quick_button(TTR("📱 HUD Mobile"), TTR("adiciona controles de celular: joystick pra andar e botões de pular, atirar e recarregar na tela")));
+	quick_row2->add_child(_make_quick_button(TTR("🎮 Lobby"), TTR("cria um lobby de entrada com lista de jogadores e botão de jogar")));
+	quick_row2->add_child(_make_quick_button(TTR("❓ Ajuda"), "__HELP__"));
+	panel->add_child(quick_row2);
 
 	// Historico do chat (fonte maior, mais facil de ler).
 	chat = memnew(RichTextLabel);
@@ -171,6 +178,13 @@ void NexAIChatPlugin::_process_message(const String &p_text) {
 			_append_chat("NEX", TTR("Não posso copiar jogos de outras empresas pra te proteger de processo, mas posso te ajudar a criar um jogo AINDA MELHOR com sua cara. Bora criar um original do mesmo estilo? 🎮"), NEX_PURPLE_LIGHT);
 			return;
 		}
+	}
+
+	// Resposta dedicada pra controles mobile (HUD).
+	if (low.contains("joystick") || low.contains("controle") || low.contains("hud") || low.contains("celular")) {
+		_append_chat("NEX", TTR("Boa! HUD Mobile é comigo mesmo. 📱\n\nVou montar: joystick na esquerda pra andar, botões de PULAR, ATIRAR e RECARREGAR na direita, tudo grande pra caber o dedo.\n\nPermissão pra mexer no projeto?"), NEX_PURPLE_LIGHT);
+		perm_row->show();
+		return;
 	}
 
 	// Fluxo normal: pede permissao antes de agir (secao 5 do NEX_AI.md).
