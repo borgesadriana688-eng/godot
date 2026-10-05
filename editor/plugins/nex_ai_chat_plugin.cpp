@@ -17,14 +17,18 @@
 #include "scene/gui/line_edit.h"
 #include "scene/gui/rich_text_label.h"
 
+// OBS: nao usar emoji (caracteres Unicode acima de U+FFFF) em nenhum texto
+// desta tela. A fonte do editor Android nao tem esses glifos e eles aparecem
+// quebrados ("ð£", "ð¥"...). Letras acentuadas normais (ã, ç, é) funcionam bem.
+
 static const Color NEX_PURPLE(0.659f, 0.333f, 0.969f, 1.0f);
 static const Color NEX_PURPLE_LIGHT(0.769f, 0.518f, 0.988f, 1.0f);
 
 Button *NexAIChatPlugin::_make_quick_button(const String &p_label, const String &p_message) {
 	Button *b = memnew(Button);
 	b->set_text(p_label);
-	b->set_custom_minimum_size(Size2(0, 44)); // alvo de toque confortavel no celular
-	b->add_theme_font_size_override("font_size", 15);
+	b->set_custom_minimum_size(Size2(0, 40)); // alvo de toque confortavel no celular
+	b->add_theme_font_size_override("font_size", 14);
 	b->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	if (p_message == "__HELP__") {
 		b->connect("pressed", callable_mp(this, &NexAIChatPlugin::_show_tutorial));
@@ -38,63 +42,68 @@ NexAIChatPlugin::NexAIChatPlugin() {
 	panel = memnew(VBoxContainer);
 	panel->set_name(TTR("NEX"));
 	panel->set_custom_minimum_size(Size2(340, 0));
-	panel->add_theme_constant_override("separation", 10);
+	panel->add_theme_constant_override("separation", 6);
 
-	// Titulo (bem grande, facil de ler no celular).
+	// Titulo (sem emoji, sem risco de ficar quebrado).
 	Label *title = memnew(Label);
-	title->set_text(TTR("🟣 NEX — sua ajudante"));
+	title->set_text(TTR("NEX - sua ajudante"));
 	title->add_theme_color_override("font_color", NEX_PURPLE_LIGHT);
-	title->add_theme_font_size_override("font_size", 22);
+	title->add_theme_font_size_override("font_size", 20);
 	panel->add_child(title);
 
 	// Subtitulo simples explicando o basico.
 	Label *subtitle = memnew(Label);
-	subtitle->set_text(TTR("Toque num botão abaixo ou escreva o que quiser."));
-	subtitle->add_theme_font_size_override("font_size", 14);
+	subtitle->set_text(TTR("Toque num botão ou escreva embaixo."));
+	subtitle->add_theme_font_size_override("font_size", 13);
 	subtitle->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
 	panel->add_child(subtitle);
 
 	// Botoes rapidos (nao precisa digitar nada pra comecar).
 	quick_row = memnew(HBoxContainer);
 	quick_row->add_theme_constant_override("separation", 6);
-	quick_row->add_child(_make_quick_button(TTR("🗺️ Mapa"), TTR("cria um mapa simples pra eu testar")));
-	quick_row->add_child(_make_quick_button(TTR("💥 Colisão"), TTR("adiciona colisão no cenário")));
-	quick_row->add_child(_make_quick_button(TTR("🔫 Arma"), TTR("cria uma arma básica")));
+	quick_row->add_child(_make_quick_button(TTR("Mapa"), TTR("cria um mapa simples pra eu testar")));
+	quick_row->add_child(_make_quick_button(TTR("Colisão"), TTR("adiciona colisão no cenário")));
+	quick_row->add_child(_make_quick_button(TTR("Arma"), TTR("cria uma arma básica")));
 	panel->add_child(quick_row);
 
 	// Segunda fileira de atalhos.
 	quick_row2 = memnew(HBoxContainer);
 	quick_row2->add_theme_constant_override("separation", 6);
-	quick_row2->add_child(_make_quick_button(TTR("📱 HUD Mobile"), TTR("adiciona controles de celular: joystick pra andar e botões de pular, atirar e recarregar na tela")));
-	quick_row2->add_child(_make_quick_button(TTR("🎮 Lobby"), TTR("cria um lobby de entrada com lista de jogadores e botão de jogar")));
-	quick_row2->add_child(_make_quick_button(TTR("❓ Ajuda"), "__HELP__"));
+	quick_row2->add_child(_make_quick_button(TTR("HUD Mobile"), TTR("adiciona controles de celular: joystick pra andar e botões de pular, atirar e recarregar na tela")));
+	quick_row2->add_child(_make_quick_button(TTR("Lobby"), TTR("cria um lobby de entrada com lista de jogadores e botão de jogar")));
+	quick_row2->add_child(_make_quick_button(TTR("Ajuda"), "__HELP__"));
 	panel->add_child(quick_row2);
 
-	// Historico do chat (fonte maior, mais facil de ler).
+	// Historico do chat. IMPORTANTE: fit_content fica DESLIGADO de proposito.
+	// Com fit_content=true o balao crescia junto com o texto e empurrava a
+	// caixa de digitar e os botoes pra fora da tela (bug reportado). Com
+	// fit_content=false + expand_fill, o chat tem altura fixa e rola por
+	// dentro, e tudo embaixo (digitar, enviar, creditos) fica sempre visivel.
 	chat = memnew(RichTextLabel);
 	chat->set_use_bbcode(true);
-	chat->set_fit_content(true);
+	chat->set_fit_content(false);
+	chat->set_scroll_active(true);
 	chat->set_scroll_follow(true);
-	chat->set_custom_minimum_size(Size2(0, 300));
+	chat->set_custom_minimum_size(Size2(0, 220));
 	chat->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	chat->add_theme_font_size_override("normal_font_size", 16);
-	chat->add_theme_font_size_override("bold_font_size", 16);
+	chat->add_theme_font_size_override("normal_font_size", 15);
+	chat->add_theme_font_size_override("bold_font_size", 15);
 	panel->add_child(chat);
 
 	// Botoes de permissao (aparecem dentro do chat quando a NEX pede).
 	perm_row = memnew(HBoxContainer);
 	perm_row->add_theme_constant_override("separation", 6);
 	btn_yes = memnew(Button);
-	btn_yes->set_text(TTR("✅ SIM, PODE FAZER"));
-	btn_yes->set_custom_minimum_size(Size2(0, 48));
-	btn_yes->add_theme_font_size_override("font_size", 16);
+	btn_yes->set_text(TTR("SIM, PODE FAZER"));
+	btn_yes->set_custom_minimum_size(Size2(0, 44));
+	btn_yes->add_theme_font_size_override("font_size", 14);
 	btn_yes->add_theme_color_override("font_color", NEX_PURPLE_LIGHT);
 	btn_yes->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	perm_row->add_child(btn_yes);
 	btn_no = memnew(Button);
-	btn_no->set_text(TTR("❌ NÃO, SÓ EXPLICA"));
-	btn_no->set_custom_minimum_size(Size2(0, 48));
-	btn_no->add_theme_font_size_override("font_size", 16);
+	btn_no->set_text(TTR("NÃO, SÓ EXPLICA"));
+	btn_no->set_custom_minimum_size(Size2(0, 44));
+	btn_no->add_theme_font_size_override("font_size", 14);
 	btn_no->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	perm_row->add_child(btn_no);
 	perm_row->hide();
@@ -103,13 +112,13 @@ NexAIChatPlugin::NexAIChatPlugin() {
 	btn_yes->connect("pressed", callable_mp(this, &NexAIChatPlugin::_on_permission).bind(true));
 	btn_no->connect("pressed", callable_mp(this, &NexAIChatPlugin::_on_permission).bind(false));
 
-	// Campo de entrada + botao enviar (maiores, mais faceis de tocar).
+	// Campo de entrada + botao enviar (sempre visiveis, nunca saem da tela).
 	HBoxContainer *entry_row = memnew(HBoxContainer);
 	entry_row->add_theme_constant_override("separation", 6);
 	input = memnew(LineEdit);
-	input->set_placeholder(TTR("Ou escreva aqui o que você quer..."));
+	input->set_placeholder(TTR("Escreva aqui o que você quer..."));
 	input->set_custom_minimum_size(Size2(0, 44));
-	input->add_theme_font_size_override("font_size", 16);
+	input->add_theme_font_size_override("font_size", 15);
 	input->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	input->connect("text_submitted", callable_mp(this, &NexAIChatPlugin::_process_message));
 	entry_row->add_child(input);
@@ -117,22 +126,22 @@ NexAIChatPlugin::NexAIChatPlugin() {
 	Button *send = memnew(Button);
 	send->set_text(TTR("Enviar"));
 	send->set_custom_minimum_size(Size2(70, 44));
-	send->add_theme_font_size_override("font_size", 16);
+	send->add_theme_font_size_override("font_size", 15);
 	send->connect("pressed", callable_mp(this, &NexAIChatPlugin::_process_message).bind(String()));
 	entry_row->add_child(send);
 	panel->add_child(entry_row);
 
-	// Saldo de creditos (conta do dono = ilimitado).
+	// Saldo de creditos (conta do dono = ilimitado). Sem simbolo "∞" pra nao arriscar.
 	credits = memnew(Label);
-	credits->set_text(TTR("Créditos: ∞"));
+	credits->set_text(TTR("Créditos: ilimitado"));
 	credits->add_theme_color_override("font_color", NEX_PURPLE);
-	credits->add_theme_font_size_override("font_size", 14);
+	credits->add_theme_font_size_override("font_size", 13);
 	panel->add_child(credits);
 
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, panel);
 
 	// Boas-vindas simples e direta.
-	_append_chat("NEX", TTR("Oi! Eu sou a NEX. 🟣\n\nToque num botão aí acima (Mapa, Colisão, Arma) pra eu começar, ou escreva o que você quiser lá na caixa de texto. Toque em \"❓ Ajuda\" se quiser o passo a passo."), NEX_PURPLE_LIGHT);
+	_append_chat("NEX", TTR("Oi! Eu sou a NEX.\n\nToque num botão aí acima (Mapa, Colisão, Arma, HUD Mobile, Lobby) pra eu começar, ou escreva o que você quiser lá na caixa de texto. Toque em \"Ajuda\" se quiser o passo a passo."), NEX_PURPLE_LIGHT);
 }
 
 void NexAIChatPlugin::_append_chat(const String &p_who, const String &p_text, const Color &p_color) {
@@ -142,11 +151,11 @@ void NexAIChatPlugin::_append_chat(const String &p_who, const String &p_text, co
 
 void NexAIChatPlugin::_show_tutorial() {
 	_append_chat("NEX", TTR(
-			"📘 Tutorial rápido:\n\n"
-			"1️⃣ Toque num botão roxo (Mapa, Colisão ou Arma) OU escreva o que você quer na caixinha de baixo.\n\n"
-			"2️⃣ Eu respondo perguntando se pode. Toque em \"✅ SIM, PODE FAZER\" pra eu seguir, ou \"❌ NÃO\" se só quiser aprender a fazer na mão.\n\n"
-			"3️⃣ Prontinho! Eu aviso quando terminar.\n\n"
-			"Lembrete: eu não copio jogos famosos (Free Fire, Roblox, etc), mas te ajudo a criar um original parecido do seu jeito. 🎮"),
+			"Tutorial rápido:\n\n"
+			"1) Toque num botão roxo (Mapa, Colisão, Arma...) OU escreva o que você quer na caixinha de baixo.\n\n"
+			"2) Eu respondo perguntando se pode. Toque em \"SIM, PODE FAZER\" pra eu seguir, ou \"NÃO\" se só quiser aprender a fazer na mão.\n\n"
+			"3) Prontinho! Eu aviso quando terminar.\n\n"
+			"Lembrete: eu não copio jogos famosos (Free Fire, Roblox, etc), mas te ajudo a criar um original parecido do seu jeito."),
 			NEX_PURPLE_LIGHT);
 }
 
@@ -175,14 +184,14 @@ void NexAIChatPlugin::_process_message(const String &p_text) {
 	String padded = " " + low + " ";
 	for (const char *word : forbidden) {
 		if (low.contains(String(word)) || padded.contains(" " + String(word) + " ")) {
-			_append_chat("NEX", TTR("Não posso copiar jogos de outras empresas pra te proteger de processo, mas posso te ajudar a criar um jogo AINDA MELHOR com sua cara. Bora criar um original do mesmo estilo? 🎮"), NEX_PURPLE_LIGHT);
+			_append_chat("NEX", TTR("Não posso copiar jogos de outras empresas pra te proteger de processo, mas posso te ajudar a criar um jogo AINDA MELHOR com sua cara. Bora criar um original do mesmo estilo?"), NEX_PURPLE_LIGHT);
 			return;
 		}
 	}
 
 	// Resposta dedicada pra controles mobile (HUD).
 	if (low.contains("joystick") || low.contains("controle") || low.contains("hud") || low.contains("celular")) {
-		_append_chat("NEX", TTR("Boa! HUD Mobile é comigo mesmo. 📱\n\nVou montar: joystick na esquerda pra andar, botões de PULAR, ATIRAR e RECARREGAR na direita, tudo grande pra caber o dedo.\n\nPermissão pra mexer no projeto?"), NEX_PURPLE_LIGHT);
+		_append_chat("NEX", TTR("Boa! HUD Mobile é comigo mesmo.\n\nVou montar: joystick na esquerda pra andar, botões de PULAR, ATIRAR e RECARREGAR na direita, tudo grande pra caber o dedo.\n\nPermissão pra mexer no projeto?"), NEX_PURPLE_LIGHT);
 		perm_row->show();
 		return;
 	}
@@ -196,7 +205,7 @@ void NexAIChatPlugin::_on_permission(bool p_allow) {
 	perm_row->hide();
 	if (p_allow) {
 		// MODO AO VIVO (secao 5.1 do NEX_AI.md).
-		_append_chat("NEX", TTR("Beleza! Entrando no modo ao vivo... 🟣\n\n(A conexão com o cérebro da NEX ainda está em desenvolvimento nesta versão. Nas próximas versões eu edito sua cena na sua frente, passo a passo, e te aviso: \"Prontinho!\")"), NEX_PURPLE_LIGHT);
+		_append_chat("NEX", TTR("Beleza! Entrando no modo ao vivo...\n\n(A conexão com o cérebro da NEX ainda está em desenvolvimento nesta versão. Nas próximas versões eu edito sua cena na sua frente, passo a passo, e te aviso: \"Prontinho!\")"), NEX_PURPLE_LIGHT);
 	} else {
 		_append_chat("NEX", TTR("Sem problema! Vou te explicar na tela como fazer na mão, passo a passo. Só me dizer o que você quer aprender."), NEX_PURPLE_LIGHT);
 	}
