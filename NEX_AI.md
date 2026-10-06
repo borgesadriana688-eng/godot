@@ -93,6 +93,22 @@ Se o dev digitar qualquer palavra da lista proibida, a NEX NÃO FAZ e responde c
 4. A NEX sempre mostra o saldo de créditos no rodapé do chat: *"Créditos: 250"*.
 5. Quando os créditos acabam, ela avisa: *"Acabaram os créditos! Entre com o Google pra pegar mais."*
 
+## 7.1 RECEITAS VISUAIS (v0.3)
+A NEX cria MODELOS COMPOSTOS DE VERDADE, não só caixas:
+- Árvore: tronco cilíndrico de madeira + copa esférica
+- Personagem: corpo, cabeça, braços, pernas + colisão de movimento
+- Casa: chão, 4 paredes, porta, janelas iluminadas, telhado
+- Carro: lataria metálica, cabine com vidro, 4 rodas
+- Arma: corpo metálico, cano cilíndrico, cabo, mira
+- Rampa sólida, cristal brilhante, moeda dourada, plataforma flutuante
+- Mapa PvP completo: chão, paredes, sol, CÉU PROCEDURAL, árvores, rampa, plataformas, moedas, spawns
+
+A NEX ENTENDE DETALHES no pedido em português:
+- COR: "árvore verde", "carro vermelho", "cristal dourado" (13 cores)
+- QUANTIDADE: "4 árvores", "três moedas" (1 a 10)
+- TAMANHO: "pequeno", "grande", "gigante"
+- Ignora acentos: "árvore" = "arvore"
+
 ## 8. FRASE DE EFEITO DA NEXUS
 > "A NEXUS não é só uma engine, é sua parceira que faz o jogo com você."
 
