@@ -17,8 +17,6 @@
 #include "core/math/color.h"
 #include "core/object/callable_mp.h"
 #include "core/variant/dictionary.h"
-#include "core/variant/packed_byte_array.h"
-#include "core/variant/packed_string_array.h"
 #include "core/string/node_path.h"
 #include "core/string/ustring.h"
 #include "core/variant/variant.h"
