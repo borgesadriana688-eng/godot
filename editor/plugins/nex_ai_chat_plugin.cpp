@@ -1378,7 +1378,7 @@ void NexAIChatPlugin::_on_brain_reply(int p_result, int p_response_code, const P
 		_classify_and_ask(low);
 		return;
 	}
-	String body_str = String::utf8(p_body.ptr(), p_body.size());
+	String body_str = String::utf8((const char *)p_body.ptr(), p_body.size());
 	Variant parsed = JSON::parse_string(body_str);
 	if (parsed.get_type() != Variant::DICTIONARY) {
 		_classify_and_ask(low);
