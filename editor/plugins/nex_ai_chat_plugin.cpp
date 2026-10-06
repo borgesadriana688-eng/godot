@@ -37,6 +37,7 @@
 #include "scene/main/scene_tree.h"
 #include "scene/resources/3d/box_shape_3d.h"
 #include "scene/resources/3d/capsule_shape_3d.h"
+#include "scene/resources/3d/cylinder_shape_3d.h"
 #include "scene/resources/3d/primitive_meshes.h"
 #include "scene/resources/3d/sky_material.h"
 #include "scene/resources/environment.h"
@@ -955,7 +956,7 @@ void NexAIChatPlugin::_live_next_step() {
 				sp->set_top_radius(0.5f);
 				sp->set_bottom_radius(0.5f);
 				sp->set_height(0.05f);
-				MeshInstance3D *s = _add_prim(decor, "Spawn_" + String::num_int64(i + 1), sp,
+				_add_prim(decor, "Spawn_" + String::num_int64(i + 1), sp,
 						Vector3(0, 0.28f, i == 0 ? 7.0f : -7.0f), Color(0.1f, 0.9f, 0.3f), 0.0f, true);
 			}
 			_add_node_live(parent, decor, TTR("NEX: decorar o mapa"));
@@ -1139,7 +1140,6 @@ bool NexAIChatPlugin::_add_node_live(Node *p_parent, Node *p_child, const String
 	if (p_parent == nullptr || p_child == nullptr) {
 		return false;
 	}
-	p_parent->validate_child_name(p_child);
 	EditorUndoRedoManager *undo_redo = EditorUndoRedoManager::get_singleton();
 	EditorSelection *sel = EditorNode::get_singleton()->get_editor_selection();
 	undo_redo->create_action_for_history(p_action_name, EditorNode::get_editor_data().get_current_edited_scene_history_id());
