@@ -738,7 +738,8 @@ static void _collect_meshes_by_name(Node *p_node, const String &p_word, Vector<M
 	if (p_node == nullptr || p_depth > 6 || r_out.size() > 500) {
 		return;
 	}
-	if (p_node->get_name().operator String().to_lower().contains(p_word)) {
+	String nome_no = p_node->get_name();
+	if (nome_no.to_lower().contains(p_word)) {
 		for (int i = 0; i < p_node->get_child_count(); i++) {
 			Node *c = p_node->get_child(i);
 			MeshInstance3D *m = Object::cast_to<MeshInstance3D>(c);
@@ -1689,8 +1690,8 @@ void NexAIChatPlugin::_live_next_step() {
 			DirectionalLight3D *sol = memnew(DirectionalLight3D);
 			sol->set_name("Sol");
 			sol->set_rotation_degrees(Vector3(-50, -35, 0));
-			sol->set_light_color(Color(1.0f, 0.96f, 0.88f));
-			sol->set_light_energy(1.15f);
+			sol->set_color(Color(1.0f, 0.96f, 0.88f));
+			sol->set_param(Light3D::PARAM_ENERGY, 1.15f);
 			br->add_child(sol);
 			// ceu azul estilizado limpo
 			Ref<ProceduralSkyMaterial> psm;
