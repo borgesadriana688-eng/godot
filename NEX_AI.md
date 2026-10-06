@@ -120,9 +120,14 @@ A NEX agora tem CÉREBRO DE IA REAL na internet:
 
 MODELOS 3D REAIS DA INTERNET:
 - Catalogo CC0 (dominio publico, Kenney Starter Kits) hospedado na release
-  "nex-assets-v1" do repo: arvore, arvore grande, casa, casa b, garagem,
-  personagem, moeda, plataforma, bandeira, carro vermelho/verde/roxo, moto,
-  arma (blaster), arma rifle, parede.
+  "nex-assets-v1" do repo (24 modelos): arvore, arvore grande, casa, casa b,
+  garagem, predio, personagem, moeda, plataforma, bandeira, nuvem, grama,
+  fonte, estrada, carro vermelho/verde/roxo, moto, arma (blaster), arma
+  rifle, parede, muro baixo, tenda, inimigo.
+- A NEX ATENDE A QUALQUER PEDIDO: o cerebro mapeia pro objeto mais proximo
+  (floresta = 10 arvores, hotel = predio, vila = 6 casas, labirinto = 10
+  paredes). Selecao do modelo em 3 niveis: acao pedida > objeto entendido
+  pelo cerebro > palavras do texto (offline).
 - No Modo Ao Vivo a NEX BAIXA o modelo .glb da internet (cache em
   user://nex_assets/), carrega via GLTFDocument e coloca na cena com undo.
 - Se o download falhar, monta a receita estilizada local no lugar.

@@ -66,6 +66,7 @@ private:
 	// MODELOS REAIS: asset .glb baixado da internet (release nex-assets-v1).
 	String pending_asset_file;
 	String pending_asset_url;
+	String pending_brain_object;
 	String _asset_save_path;
 	bool pending_have_real = false;
 	class HTTPRequest *_brain_req = nullptr;

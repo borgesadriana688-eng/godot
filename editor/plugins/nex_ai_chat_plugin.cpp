@@ -154,6 +154,73 @@ static String _unaccent(const String &p_s) {
 	return s;
 }
 
+
+// Palavra de objeto (do cerebro ou do texto) -> modelo real. Catalogo CC0.
+static const char *_asset_by_object_word(const String &p_word) {
+	if (p_word.is_empty()) {
+		return nullptr;
+	}
+	String w = _unaccent(p_word.to_lower());
+	if (w.contains("arvore") || w.contains("floresta") || w.contains("planta")) {
+		return "nex_arvore.glb";
+	}
+	if (w.contains("personagem") || w.contains("boneco") || w.contains("jogador") || w.contains("npc")) {
+		return "nex_personagem.glb";
+	}
+	if (w.contains("garagem")) {
+		return "nex_garagem.glb";
+	}
+	if (w.contains("casa") || w.contains("cabana") || w.contains("vila")) {
+		return "nex_casa.glb";
+	}
+	if (w.contains("predio") || w.contains("hotel") || w.contains("torre") || w.contains("construc")) {
+		return "nex_predio.glb";
+	}
+	if (w.contains("moto")) {
+		return "nex_moto.glb";
+	}
+	if (w.contains("carro") || w.contains("caminhonete") || w.contains("veiculo")) {
+		return "nex_carro_roxo.glb";
+	}
+	if (w.contains("rifle")) {
+		return "nex_arma_rifle.glb";
+	}
+	if (w.contains("arma") || w.contains("pistola") || w.contains("blaster") || w.contains("tiro")) {
+		return "nex_arma.glb";
+	}
+	if (w.contains("moeda") || w.contains("coin") || w.contains("dinheiro")) {
+		return "nex_moeda.glb";
+	}
+	if (w.contains("plataforma") || w.contains("chao flutuante")) {
+		return "nex_plataforma.glb";
+	}
+	if (w.contains("parede") || w.contains("muro") || w.contains("cerca")) {
+		return "nex_parede.glb";
+	}
+	if (w.contains("estrada") || w.contains("rua") || w.contains("pista")) {
+		return "nex_estrada.glb";
+	}
+	if (w.contains("fonte")) {
+		return "nex_fonte.glb";
+	}
+	if (w.contains("grama") || w.contains("relva")) {
+		return "nex_grama.glb";
+	}
+	if (w.contains("nuvem")) {
+		return "nex_nuvem.glb";
+	}
+	if (w.contains("tenda") || w.contains("barraca")) {
+		return "nex_tenda.glb";
+	}
+	if (w.contains("inimigo") || w.contains("monstro") || w.contains("boss")) {
+		return "nex_inimigo.glb";
+	}
+	if (w.contains("bandeira") || w.contains("flag")) {
+		return "nex_bandeira.glb";
+	}
+	return nullptr;
+}
+
 // Cor pedida em palavras (preto, verde, dourado...).
 static bool _color_from_text(const String &p_low, Color &r_col) {
 	static const char *words[] = { "preto", "branco", "vermelho", "azul", "verde",
@@ -647,7 +714,7 @@ void NexAIChatPlugin::_classify_and_ask(const String &p_low) {
 	} else if (p_low.contains("arma") || p_low.contains("tiro") || p_low.contains("weapon") || p_low.contains("gun")) {
 		pending_action = ACTION_WEAPON;
 		_append_chat("NEX", TTR("Arma! Vou montar um modelo de verdade: corpo metálico, cano, cabo e mira. Pode ser?"), NEX_PURPLE_LIGHT);
-	} else if (p_low.contains("arvore")) {
+	} else if (p_low.contains("arvore") || p_low.contains("floresta")) {
 		pending_action = ACTION_TREE;
 		_append_chat("NEX", vformat(TTR("Árvores! Vou plantar %d árvore(s) de verdade: tronco de madeira e copa esférica %s. Pode ser?"), pending_count, pending_color_valid ? TTR("na cor que você pediu") : TTR("verde")), NEX_PURPLE_LIGHT);
 	} else if (p_low.contains("personagem") || p_low.contains("boneco") || p_low.contains("jogador") || p_low.contains("npc")) {
@@ -696,6 +763,7 @@ void NexAIChatPlugin::_process_message(const String &p_text) {
 	_append_chat(TTR("Você"), txt, Color(1, 1, 1, 1));
 	pending_text = txt;
 	pending_action = ACTION_NONE;
+	pending_brain_object = String();
 	pending_count = 1;
 	pending_scale = 1.0f;
 	pending_color_valid = false;
@@ -780,10 +848,18 @@ void NexAIChatPlugin::_start_live() {
 	live_total = 0;
 	pending_have_real = false;
 
-	// MODELO REAL: se o pedido tem um modelo de verdade no catalogo,
-	// baixa da internet antes de montar (fallback: receita estilizada).
+	// MODELO REAL: 3 niveis de escolha:
+	// 1) pela acao pedida (arvore, casa, carro...), 2) pelo objeto que o
+	// cerebro online entendeu (predio, fonte, parede...), 3) procurando
+	// palavras no texto do pedido (modo offline).
 	String low = _unaccent(pending_text.to_lower());
 	const char *asset = _asset_for(pending_action, low);
+	if (asset == nullptr) {
+		asset = _asset_by_object_word(pending_brain_object);
+	}
+	if (asset == nullptr && pending_action == ACTION_GENERIC) {
+		asset = _asset_by_object_word(low);
+	}
 	if (asset != nullptr) {
 		pending_asset_file = String(asset);
 		pending_asset_url = String(NEX_ASSETS_URL) + pending_asset_file;
@@ -1230,6 +1306,9 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		default: { // STEP_GENERIC
+			if (pending_have_real && _spawn_real(root, "Objeto_Real", 3.0f)) {
+				break;
+			}
 			MeshInstance3D *obj = memnew(MeshInstance3D);
 			obj->set_name("Objeto");
 			Ref<BoxMesh> gb;
@@ -1334,6 +1413,7 @@ void NexAIChatPlugin::_apply_brain_command(const Dictionary &p_cmd) {
 		return;
 	}
 	String obj = static_cast<String>(p_cmd.get("object", String("generico")));
+	pending_brain_object = obj;
 	int64_t count = static_cast<int64_t>(p_cmd.get("count", 1));
 	double scale = static_cast<double>(p_cmd.get("scale", 1.0));
 	pending_count = CLAMP((int)count, 1, 10);
@@ -1374,6 +1454,8 @@ void NexAIChatPlugin::_apply_brain_command(const Dictionary &p_cmd) {
 	} else if (obj == "colisao") {
 		pending_action = ACTION_COLLISION;
 	} else {
+		// parede, estrada, fonte, grama, nuvem, predio, tenda, inimigo,
+		// bandeira e qualquer outro: generico + modelo real pelo objeto.
 		pending_action = ACTION_GENERIC;
 	}
 	String confirm = static_cast<String>(p_cmd.get("confirm", String()));
@@ -1383,7 +1465,7 @@ void NexAIChatPlugin::_apply_brain_command(const Dictionary &p_cmd) {
 	String extra = String();
 	if (pending_action == ACTION_TREE || pending_action == ACTION_CHAR || pending_action == ACTION_HOUSE ||
 			pending_action == ACTION_CAR || pending_action == ACTION_WEAPON || pending_action == ACTION_COIN ||
-			pending_action == ACTION_PLATFORM) {
+			pending_action == ACTION_PLATFORM || pending_action == ACTION_GENERIC) {
 		extra = TTR(" Com internet eu ainda baixo um MODELO DE VERDADE da web!");
 	}
 	_append_chat("NEX", confirm + TTR(" Pode ser?") + extra, NEX_PURPLE_LIGHT);
