@@ -52,7 +52,7 @@
 #include "scene/resources/3d/primitive_meshes.h"
 #include "scene/resources/3d/sky_material.h"
 #include "scene/resources/environment.h"
-#include "scene/resources/sky->h"
+#include "scene/resources/sky.h"
 #include "scene/resources/material.h"
 #include "modules/gltf/gltf_document.h"
 #include "modules/gltf/gltf_state.h"
