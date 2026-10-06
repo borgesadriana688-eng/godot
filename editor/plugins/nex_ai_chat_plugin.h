@@ -29,6 +29,14 @@ public:
 		ACTION_WEAPON,
 		ACTION_HUD,
 		ACTION_LOBBY,
+		ACTION_TREE,
+		ACTION_CHAR,
+		ACTION_HOUSE,
+		ACTION_CAR,
+		ACTION_RAMP,
+		ACTION_CRYSTAL,
+		ACTION_COIN,
+		ACTION_PLATFORM,
 		ACTION_GENERIC,
 	};
 
@@ -45,6 +53,12 @@ private:
 
 	PendingAction pending_action = ACTION_NONE;
 	String pending_text;
+
+	// Dados extraidos do pedido do dev (cor, quantidade, tamanho).
+	int pending_count = 1;
+	float pending_scale = 1.0f;
+	Color pending_color = Color(0.66f, 0.33f, 0.97f);
+	bool pending_color_valid = false;
 
 	// Fila de passos do modo ao vivo (executados um por vez com pausa,
 	// narrando no chat, pra dar o efeito "fazendo na tela").
@@ -64,7 +78,6 @@ private:
 	void _live_next_step();
 	void _queue_live(int p_kind, const String &p_narration);
 	bool _add_node_live(Node *p_parent, Node *p_child, const String &p_action_name);
-	Node *_scene_root_3d_check();
 
 protected:
 	static void _bind_methods() {}
