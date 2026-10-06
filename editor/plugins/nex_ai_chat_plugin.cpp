@@ -175,61 +175,61 @@ static const char *_asset_by_object_word(const String &p_word) {
 		return nullptr;
 	}
 	String w = _unaccent(p_word.to_lower());
-	if (w->contains("arvore") || w->contains("floresta") || w->contains("planta")) {
+	if (w.contains("arvore") || w.contains("floresta") || w.contains("planta")) {
 		return "nex_arvore.glb";
 	}
-	if (w->contains("personagem") || w->contains("boneco") || w->contains("jogador") || w->contains("npc")) {
+	if (w.contains("personagem") || w.contains("boneco") || w.contains("jogador") || w.contains("npc")) {
 		return "nex_personagem.glb";
 	}
-	if (w->contains("garagem")) {
+	if (w.contains("garagem")) {
 		return "nex_garagem.glb";
 	}
-	if (w->contains("casa") || w->contains("cabana") || w->contains("vila")) {
+	if (w.contains("casa") || w.contains("cabana") || w.contains("vila")) {
 		return "nex_casa.glb";
 	}
-	if (w->contains("predio") || w->contains("hotel") || w->contains("torre") || w->contains("construc")) {
+	if (w.contains("predio") || w.contains("hotel") || w.contains("torre") || w.contains("construc")) {
 		return "nex_predio.glb";
 	}
-	if (w->contains("moto")) {
+	if (w.contains("moto")) {
 		return "nex_moto.glb";
 	}
-	if (w->contains("carro") || w->contains("caminhonete") || w->contains("veiculo")) {
+	if (w.contains("carro") || w.contains("caminhonete") || w.contains("veiculo")) {
 		return "nex_carro_roxo.glb";
 	}
-	if (w->contains("rifle")) {
+	if (w.contains("rifle")) {
 		return "nex_arma_rifle.glb";
 	}
-	if (w->contains("arma") || w->contains("pistola") || w->contains("blaster") || w->contains("tiro")) {
+	if (w.contains("arma") || w.contains("pistola") || w.contains("blaster") || w.contains("tiro")) {
 		return "nex_arma.glb";
 	}
-	if (w->contains("moeda") || w->contains("coin") || w->contains("dinheiro")) {
+	if (w.contains("moeda") || w.contains("coin") || w.contains("dinheiro")) {
 		return "nex_moeda.glb";
 	}
-	if (w->contains("plataforma") || w->contains("chao flutuante")) {
+	if (w.contains("plataforma") || w.contains("chao flutuante")) {
 		return "nex_plataforma.glb";
 	}
-	if (w->contains("parede") || w->contains("muro") || w->contains("cerca")) {
+	if (w.contains("parede") || w.contains("muro") || w.contains("cerca")) {
 		return "nex_parede.glb";
 	}
-	if (w->contains("estrada") || w->contains("rua") || w->contains("pista")) {
+	if (w.contains("estrada") || w.contains("rua") || w.contains("pista")) {
 		return "nex_estrada.glb";
 	}
-	if (w->contains("fonte")) {
+	if (w.contains("fonte")) {
 		return "nex_fonte.glb";
 	}
-	if (w->contains("grama") || w->contains("relva")) {
+	if (w.contains("grama") || w.contains("relva")) {
 		return "nex_grama.glb";
 	}
-	if (w->contains("nuvem")) {
+	if (w.contains("nuvem")) {
 		return "nex_nuvem.glb";
 	}
-	if (w->contains("tenda") || w->contains("barraca")) {
+	if (w.contains("tenda") || w.contains("barraca")) {
 		return "nex_tenda.glb";
 	}
-	if (w->contains("inimigo") || w->contains("monstro") || w->contains("boss")) {
+	if (w.contains("inimigo") || w.contains("monstro") || w.contains("boss")) {
 		return "nex_inimigo.glb";
 	}
-	if (w->contains("bandeira") || w->contains("flag")) {
+	if (w.contains("bandeira") || w.contains("flag")) {
 		return "nex_bandeira.glb";
 	}
 	return nullptr;
