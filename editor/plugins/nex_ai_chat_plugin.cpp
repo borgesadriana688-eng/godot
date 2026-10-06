@@ -9,8 +9,16 @@
 
 #include "editor/plugins/nex_ai_chat_plugin.h"
 
+#include "core/config/project_settings.h"
+#include "core/io/dir_access.h"
+#include "core/io/file_access.h"
+#include "core/io/http_client.h"
+#include "core/io/json.h"
 #include "core/math/color.h"
 #include "core/object/callable_mp.h"
+#include "core/variant/dictionary.h"
+#include "core/variant/packed_byte_array.h"
+#include "core/variant/packed_string_array.h"
 #include "core/string/node_path.h"
 #include "core/string/ustring.h"
 #include "core/variant/variant.h"
@@ -34,6 +42,7 @@
 #include "scene/gui/rich_text_label.h"
 #include "scene/main/canvas_layer.h"
 #include "scene/main/node.h"
+#include "scene/main/http_request.h"
 #include "scene/main/scene_tree.h"
 #include "scene/resources/3d/box_shape_3d.h"
 #include "scene/resources/3d/capsule_shape_3d.h"
@@ -43,16 +52,22 @@
 #include "scene/resources/environment.h"
 #include "scene/resources/sky.h"
 #include "scene/resources/material.h"
+#include "modules/gltf/gltf_document.h"
+#include "modules/gltf/gltf_state.h"
 
 // OBS: nao usar emoji (caracteres acima de U+FFFF) em nenhum texto desta
 // tela. A fonte do editor Android nao tem esses glifos e eles aparecem
 // quebrados. Letras acentuadas normais (ã, ç, é) funcionam bem.
+
+static const char *NEX_ASSETS_URL = "https://github.com/borgesadriana688-eng/godot/releases/download/nex-assets-v1/";
+static const char *NEX_BRAIN_URL = "https://elio-43de708f.base44.app/functions/kryno";
 
 static const Color NEX_PURPLE(0.659f, 0.333f, 0.969f, 1.0f);
 static const Color NEX_PURPLE_LIGHT(0.769f, 0.518f, 0.988f, 1.0f);
 
 // Passos do modo ao vivo.
 enum NexLiveStep {
+	STEP_FETCH,
 	STEP_GROUND,
 	STEP_WALLS,
 	STEP_LIGHT_ENV,
@@ -97,6 +112,31 @@ static MeshInstance3D *_add_prim(Node3D *p_parent, const String &p_name, Ref<Pri
 	m->set_material_override(_mat(p_col, p_metal, p_emissive, p_col));
 	p_parent->add_child(m);
 	return m;
+}
+
+
+// Escolhe o modelo real (.glb) pro pedido; nullptr se nao tem modelo real.
+static const char *_asset_for(NexAIChatPlugin::PendingAction p_action, const String &p_low) {
+	switch (p_action) {
+		case NexAIChatPlugin::ACTION_TREE: return "nex_arvore.glb";
+		case NexAIChatPlugin::ACTION_CHAR: return "nex_personagem.glb";
+		case NexAIChatPlugin::ACTION_HOUSE: return p_low.contains("garagem") ? "nex_garagem.glb" : "nex_casa.glb";
+		case NexAIChatPlugin::ACTION_CAR:
+			if (p_low.contains("moto")) {
+				return "nex_moto.glb";
+			}
+			if (p_low.contains("vermelho")) {
+				return "nex_carro_vermelho.glb";
+			}
+			if (p_low.contains("verde")) {
+				return "nex_carro_verde.glb";
+			}
+			return "nex_carro_roxo.glb";
+		case NexAIChatPlugin::ACTION_WEAPON: return p_low.contains("rifle") ? "nex_arma_rifle.glb" : "nex_arma.glb";
+		case NexAIChatPlugin::ACTION_COIN: return "nex_moeda.glb";
+		case NexAIChatPlugin::ACTION_PLATFORM: return "nex_plataforma.glb";
+		default: return nullptr;
+	}
 }
 
 // Tira acento pra comparar pedido do dev sem se preocupar com acentuacao.
@@ -695,8 +735,9 @@ void NexAIChatPlugin::_process_message(const String &p_text) {
 		return;
 	}
 
-	// Pedidos de criacao: pede permissao e roda o modo ao vivo.
-	_classify_and_ask(low);
+	// Pedidos de criacao: pergunta pro CEREBRO ONLINE (Kryno). Sem internet
+	// ou sem chave, cai no entendimento local (offline nunca quebra).
+	_brain_ask(txt);
 }
 
 void NexAIChatPlugin::_on_permission(bool p_allow) {
@@ -737,8 +778,25 @@ void NexAIChatPlugin::_start_live() {
 	live_kinds.clear();
 	live_index = 0;
 	live_total = 0;
+	pending_have_real = false;
+
+	// MODELO REAL: se o pedido tem um modelo de verdade no catalogo,
+	// baixa da internet antes de montar (fallback: receita estilizada).
+	String low = _unaccent(pending_text.to_lower());
+	const char *asset = _asset_for(pending_action, low);
+	if (asset != nullptr) {
+		pending_asset_file = String(asset);
+		pending_asset_url = String(NEX_ASSETS_URL) + pending_asset_file;
+	} else {
+		pending_asset_file = String();
+		pending_asset_url = String();
+	}
 
 	_append_chat("NEX", TTR("Fechado! Modo ao vivo ligado. Olha a cena 3D que eu vou montando..."), NEX_PURPLE_LIGHT);
+
+	if (!pending_asset_url.is_empty()) {
+		_queue_live(STEP_FETCH, TTR("Pegando na internet um MODELO DE VERDADE (3D real)..."));
+	}
 
 	switch (pending_action) {
 		case ACTION_MAP:
@@ -829,6 +887,33 @@ void NexAIChatPlugin::_live_next_step() {
 	Color cor = pending_color_valid ? pending_color : NEX_PURPLE;
 
 	switch (kind) {
+		case STEP_FETCH: {
+			// consome este passo agora; a continuacao vem no callback do download
+			live_index++;
+			Ref<DirAccess> da = DirAccess::open("user://");
+			if (da.is_valid()) {
+				da->make_dir_recursive("nex_assets");
+			}
+			_asset_save_path = "user://nex_assets/" + pending_asset_file;
+			if (FileAccess::exists(_asset_save_path)) {
+				// ja em cache (ja baixou antes) - usa direto
+				pending_have_real = true;
+				_live_next_step();
+				return;
+			}
+			_asset_req = memnew(HTTPRequest);
+			_asset_req->set_timeout(10.0);
+			_asset_req->set_download_file(_asset_save_path);
+			_asset_req->connect("request_completed", callable_mp(this, &NexAIChatPlugin::_on_asset_done));
+			add_child(_asset_req);
+			Error err = _asset_req->request(pending_asset_url);
+			if (err != OK) {
+				_asset_req->queue_free();
+				_asset_req = nullptr;
+				_live_next_step(); // segue sem modelo real
+			}
+			return;
+		}
 		case STEP_GROUND: {
 			Node3D *map = memnew(Node3D);
 			map->set_name("Mapa_PvP");
@@ -977,6 +1062,10 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_GUN: {
+		if (pending_have_real && _spawn_real(root, "Arma_Real", 2.0f)) {
+			break;
+		}
+
 			Node3D *arma = _recipe_gun(pending_color_valid ? cor : Color(0.2f, 0.12f, 0.32f));
 			arma->set_position(Vector3(1, 1, 0));
 			arma->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
@@ -1046,6 +1135,10 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_TREE: {
+		if (pending_have_real && _spawn_real(root, "Arvore_Real", 3.0f)) {
+			break;
+		}
+
 			Node3D *grupo = memnew(Node3D);
 			grupo->set_name("Arvores");
 			Color copa = pending_color_valid ? cor : Color(0.2f, 0.7f, 0.25f);
@@ -1060,18 +1153,30 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_CHAR: {
+		if (pending_have_real && _spawn_real(root, "Personagem_Real", 2.5f)) {
+			break;
+		}
+
 			CharacterBody3D *chr = _recipe_char(pending_color_valid ? cor : Color(0.4f, 0.25f, 0.85f));
 			chr->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
 			_add_node_live(root, chr, TTR("NEX: criar personagem"));
 			break;
 		}
 		case STEP_HOUSE: {
+		if (pending_have_real && _spawn_real(root, "Casa_Real", 8.0f)) {
+			break;
+		}
+
 			Node3D *casa = _recipe_house(pending_color_valid ? cor : Color(0.85f, 0.8f, 0.7f));
 			casa->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
 			_add_node_live(root, casa, TTR("NEX: construir casa"));
 			break;
 		}
 		case STEP_CAR: {
+		if (pending_have_real && _spawn_real(root, "Carro_Real", 4.0f)) {
+			break;
+		}
+
 			Node3D *carro = _recipe_car(pending_color_valid ? cor : Color(0.8f, 0.15f, 0.15f));
 			carro->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
 			_add_node_live(root, carro, TTR("NEX: montar carro"));
@@ -1090,6 +1195,10 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_COIN: {
+		if (pending_have_real && _spawn_real(root, "Moeda_Real", 1.5f)) {
+			break;
+		}
+
 			Node3D *grupo = memnew(Node3D);
 			grupo->set_name("Moedas");
 			for (int i = 0; i < pending_count; i++) {
@@ -1103,6 +1212,10 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_PLATFORM: {
+		if (pending_have_real && _spawn_real(root, "Plataforma_Real", 3.0f)) {
+			break;
+		}
+
 			Node3D *grupo = memnew(Node3D);
 			grupo->set_name("Plataformas");
 			for (int i = 0; i < pending_count; i++) {
@@ -1130,9 +1243,11 @@ void NexAIChatPlugin::_live_next_step() {
 		}
 	}
 
-	live_index++;
-	// Pausa entre passos pra dar o efeito "fazendo ao vivo".
-	get_tree()->create_timer(0.9f)->connect("timeout", callable_mp(this, &NexAIChatPlugin::_live_next_step));
+	if (kind != STEP_FETCH) {
+		live_index++;
+		// Pausa entre passos pra dar o efeito "fazendo ao vivo".
+		get_tree()->create_timer(0.9f)->connect("timeout", callable_mp(this, &NexAIChatPlugin::_live_next_step));
+	}
 }
 
 bool NexAIChatPlugin::_add_node_live(Node *p_parent, Node *p_child, const String &p_action_name) {
@@ -1150,6 +1265,181 @@ bool NexAIChatPlugin::_add_node_live(Node *p_parent, Node *p_child, const String
 	undo_redo->add_do_reference(p_child);
 	undo_redo->add_undo_method(p_parent, "remove_child", p_child);
 	undo_redo->commit_action();
+	return true;
+}
+
+
+// ---------------- CEREBRO ONLINE (Kryno no Base44) -------------------------
+
+void NexAIChatPlugin::_brain_ask(const String &p_text) {
+	Dictionary body;
+	body["action"] = "nex";
+	body["text"] = p_text;
+	_brain_req = memnew(HTTPRequest);
+	_brain_req->set_timeout(4.0);
+	_brain_req->connect("request_completed", callable_mp(this, &NexAIChatPlugin::_on_brain_reply));
+	add_child(_brain_req);
+	Vector<String> headers;
+	headers.push_back("Content-Type: application/json");
+	Error err = _brain_req->request(String(NEX_BRAIN_URL), headers, HTTPClient::METHOD_POST, JSON::stringify(body));
+	if (err != OK) {
+		_brain_req->queue_free();
+		_brain_req = nullptr;
+		_classify_and_ask(_unaccent(p_text.to_lower()));
+	}
+}
+
+void NexAIChatPlugin::_on_brain_reply(int p_result, int p_response_code, const PackedStringArray &p_headers, const PackedByteArray &p_body) {
+	HTTPRequest *req = _brain_req;
+	_brain_req = nullptr;
+	if (req != nullptr) {
+		req->queue_free();
+	}
+	String low = _unaccent(pending_text.to_lower());
+	if (p_result != HTTPRequest::RESULT_SUCCESS || p_response_code != 200) {
+		// sem internet/timeout: entendimento local (nunca quebra offline)
+		_classify_and_ask(low);
+		return;
+	}
+	String body_str = String::utf8(p_body.ptr(), p_body.size());
+	Variant parsed = JSON::parse_string(body_str);
+	if (parsed.get_type() != Variant::DICTIONARY) {
+		_classify_and_ask(low);
+		return;
+	}
+	Dictionary d = parsed;
+	bool ok = false;
+	if (d.has("ok")) {
+		ok = static_cast<bool>(d["ok"]);
+	}
+	if (!ok) {
+		// servidor sem chave de IA configurada (ou erro) -> cerebro local
+		_classify_and_ask(low);
+		return;
+	}
+	String type = static_cast<String>(d.get("type", String("create")));
+	if (type == "answer") {
+		String text = static_cast<String>(d.get("text", String()));
+		_append_chat("NEX", text.is_empty() ? TTR("Entendi! Qualquer coisa me chama.") : text, NEX_PURPLE_LIGHT);
+		return;
+	}
+	Dictionary cmd = static_cast<Dictionary>(d.get("command", Dictionary()));
+	_apply_brain_command(cmd);
+}
+
+void NexAIChatPlugin::_apply_brain_command(const Dictionary &p_cmd) {
+	String low = _unaccent(pending_text.to_lower());
+	if (!p_cmd.has("object")) {
+		_classify_and_ask(low);
+		return;
+	}
+	String obj = static_cast<String>(p_cmd.get("object", String("generico")));
+	int64_t count = static_cast<int64_t>(p_cmd.get("count", 1));
+	double scale = static_cast<double>(p_cmd.get("scale", 1.0));
+	pending_count = CLAMP((int)count, 1, 10);
+	pending_scale = CLAMP((float)scale, 0.5f, 3.0f);
+	pending_color_valid = false;
+	String color_word = static_cast<String>(p_cmd.get("color", String()));
+	if (!color_word.is_empty()) {
+		Color c;
+		if (_color_from_text(color_word, c)) {
+			pending_color = c;
+			pending_color_valid = true;
+		}
+	}
+	if (obj == "mapa") {
+		pending_action = ACTION_MAP;
+	} else if (obj == "arvore") {
+		pending_action = ACTION_TREE;
+	} else if (obj == "personagem") {
+		pending_action = ACTION_CHAR;
+	} else if (obj == "casa") {
+		pending_action = ACTION_HOUSE;
+	} else if (obj == "carro" || obj == "moto") {
+		pending_action = ACTION_CAR;
+	} else if (obj == "arma") {
+		pending_action = ACTION_WEAPON;
+	} else if (obj == "moeda") {
+		pending_action = ACTION_COIN;
+	} else if (obj == "plataforma") {
+		pending_action = ACTION_PLATFORM;
+	} else if (obj == "rampa") {
+		pending_action = ACTION_RAMP;
+	} else if (obj == "cristal") {
+		pending_action = ACTION_CRYSTAL;
+	} else if (obj == "hud") {
+		pending_action = ACTION_HUD;
+	} else if (obj == "lobby") {
+		pending_action = ACTION_LOBBY;
+	} else if (obj == "colisao") {
+		pending_action = ACTION_COLLISION;
+	} else {
+		pending_action = ACTION_GENERIC;
+	}
+	String confirm = static_cast<String>(p_cmd.get("confirm", String()));
+	if (confirm.is_empty()) {
+		confirm = TTR("Entendi certinho o que você quer!");
+	}
+	String extra = String();
+	if (pending_action == ACTION_TREE || pending_action == ACTION_CHAR || pending_action == ACTION_HOUSE ||
+			pending_action == ACTION_CAR || pending_action == ACTION_WEAPON || pending_action == ACTION_COIN ||
+			pending_action == ACTION_PLATFORM) {
+		extra = TTR(" Com internet eu ainda baixo um MODELO DE VERDADE da web!");
+	}
+	_append_chat("NEX", confirm + TTR(" Pode ser?") + extra, NEX_PURPLE_LIGHT);
+	perm_row->show();
+}
+
+// ---------------- MODELO REAL: fim do download ------------------------------
+
+void NexAIChatPlugin::_on_asset_done(int p_result, int p_response_code, const PackedStringArray &p_headers, const PackedByteArray &p_body) {
+	HTTPRequest *req = _asset_req;
+	_asset_req = nullptr;
+	if (req != nullptr) {
+		req->queue_free();
+	}
+	if (p_result == HTTPRequest::RESULT_SUCCESS && p_response_code >= 200 && p_response_code < 300 && FileAccess::exists(_asset_save_path)) {
+		pending_have_real = true;
+		_append_chat("NEX", TTR("Baixei o modelo de verdade! Colocando ele na sua cena..."), NEX_PURPLE_LIGHT);
+	} else {
+		if (FileAccess::exists(_asset_save_path)) {
+			DirAccess::remove_absolute(_asset_save_path);
+		}
+		_append_chat("NEX", TTR("Não consegui baixar da internet agora; vou montar no meu estilo estilizado mesmo assim."), NEX_PURPLE_LIGHT);
+	}
+	_live_next_step();
+}
+
+bool NexAIChatPlugin::_spawn_real(Node *p_root, const String &p_base_name, float p_spacing) {
+	String abs = ProjectSettings::get_singleton()->globalize_path(_asset_save_path);
+	for (int i = 0; i < pending_count; i++) {
+		Ref<GLTFState> state;
+		state.instantiate();
+		Ref<GLTFDocument> doc;
+		doc.instantiate();
+		if (doc->append_from_file(abs, state) != OK) {
+			pending_have_real = false;
+			return false;
+		}
+		Node *inst = doc->generate_scene(state);
+		if (inst == nullptr) {
+			pending_have_real = false;
+			return false;
+		}
+		inst->set_name(pending_count > 1 ? (p_base_name + "_" + String::num_int64(i + 1)) : p_base_name);
+		Node3D *n = Object::cast_to<Node3D>(inst);
+		if (n != nullptr) {
+			n->set_position(Vector3((i - pending_count / 2.0f) * p_spacing, 0, 0));
+			if (pending_scale != 1.0f) {
+				n->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
+			}
+		}
+		if (!_add_node_live(p_root, inst, TTR("NEX: colocar modelo de verdade"))) {
+			memdelete(inst);
+			pending_have_real = false;
+			return false;
+		}
+	}
 	return true;
 }
 

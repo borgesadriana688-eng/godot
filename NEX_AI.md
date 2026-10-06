@@ -109,6 +109,27 @@ A NEX ENTENDE DETALHES no pedido em português:
 - TAMANHO: "pequeno", "grande", "gigante"
 - Ignora acentos: "árvore" = "arvore"
 
+## 7.2 CÉREBRO ONLINE + MODELOS DE VERDADE (v0.4)
+A NEX agora tem CÉREBRO DE IA REAL na internet:
+- Todo pedido vai pro servidor Kryno (Base44, action "nex"), que usa um LLM
+  (Groq Llama ou Gemini) pra entender QUALQUER frase em português, até com
+  gíria e erro de digitação, e devolve um comando JSON (objeto, quantidade,
+  tamanho, cor + frase de confirmação).
+- SEM internet ou SEM chave de IA: cai no entendimento local automaticamente
+  (nunca quebra offline).
+
+MODELOS 3D REAIS DA INTERNET:
+- Catalogo CC0 (dominio publico, Kenney Starter Kits) hospedado na release
+  "nex-assets-v1" do repo: arvore, arvore grande, casa, casa b, garagem,
+  personagem, moeda, plataforma, bandeira, carro vermelho/verde/roxo, moto,
+  arma (blaster), arma rifle, parede.
+- No Modo Ao Vivo a NEX BAIXA o modelo .glb da internet (cache em
+  user://nex_assets/), carrega via GLTFDocument e coloca na cena com undo.
+- Se o download falhar, monta a receita estilizada local no lugar.
+
+PENDENTE: definir a secret KRYNO_API_KEY (chave gratuita do Groq:
+console.groq.com) no backend pra ligar o cérebro.
+
 ## 8. FRASE DE EFEITO DA NEXUS
 > "A NEXUS não é só uma engine, é sua parceira que faz o jogo com você."
 

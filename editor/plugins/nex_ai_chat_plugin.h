@@ -11,6 +11,9 @@
 
 #include "core/math/color.h"
 #include "core/templates/vector.h"
+#include "core/variant/dictionary.h"
+#include "core/variant/packed_byte_array.h"
+#include "core/variant/packed_string_array.h"
 #include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
 #include "scene/gui/label.h"
@@ -60,6 +63,14 @@ private:
 	Color pending_color = Color(0.66f, 0.33f, 0.97f);
 	bool pending_color_valid = false;
 
+	// MODELOS REAIS: asset .glb baixado da internet (release nex-assets-v1).
+	String pending_asset_file;
+	String pending_asset_url;
+	String _asset_save_path;
+	bool pending_have_real = false;
+	class HTTPRequest *_brain_req = nullptr;
+	class HTTPRequest *_asset_req = nullptr;
+
 	// Fila de passos do modo ao vivo (executados um por vez com pausa,
 	// narrando no chat, pra dar o efeito "fazendo na tela").
 	Vector<String> live_narrations;
@@ -73,6 +84,11 @@ private:
 	void _process_message(const String &p_text);
 	void _answer_question(const String &p_low);
 	void _classify_and_ask(const String &p_low);
+	void _brain_ask(const String &p_text);
+	void _on_brain_reply(int p_result, int p_response_code, const PackedStringArray &p_headers, const PackedByteArray &p_body);
+	void _on_asset_done(int p_result, int p_response_code, const PackedStringArray &p_headers, const PackedByteArray &p_body);
+	void _apply_brain_command(const Dictionary &p_cmd);
+	bool _spawn_real(Node *p_root, const String &p_base_name, float p_spacing);
 	void _on_permission(bool p_allow);
 	void _start_live();
 	void _live_next_step();
