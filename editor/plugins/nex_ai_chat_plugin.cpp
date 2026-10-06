@@ -22,6 +22,10 @@
 #include "core/variant/variant.h"
 #include "editor/editor_data.h"
 #include "editor/editor_node.h"
+#include "editor/editor_interface.h"
+#include "scene/3d/camera_3d.h"
+#include "scene/3d/label_3d.h"
+#include "scene/main/viewport.h"
 #include "editor/editor_undo_redo_manager.h"
 #include "editor/plugins/editor_plugin.h"
 #include "scene/3d/light_3d.h"
@@ -48,7 +52,7 @@
 #include "scene/resources/3d/primitive_meshes.h"
 #include "scene/resources/3d/sky_material.h"
 #include "scene/resources/environment.h"
-#include "scene/resources/sky.h"
+#include "scene/resources/sky->h"
 #include "scene/resources/material.h"
 #include "modules/gltf/gltf_document.h"
 #include "modules/gltf/gltf_state.h"
@@ -83,6 +87,18 @@ enum NexLiveStep {
 	STEP_COIN,
 	STEP_PLATFORM,
 	STEP_GENERIC,
+	STEP_BR_TERRAIN,
+	STEP_BR_TOWN,
+	STEP_BR_CITY,
+	STEP_BR_GAS,
+	STEP_BR_FOREST,
+	STEP_BR_ROADS,
+	STEP_BR_LOOT,
+	STEP_BR_ZONE,
+	STEP_WALL,
+	STEP_CHEST,
+	STEP_EFFECT,
+	STEP_RECOLOR,
 };
 
 // ---------------- helpers de material --------------------------------------
@@ -159,61 +175,61 @@ static const char *_asset_by_object_word(const String &p_word) {
 		return nullptr;
 	}
 	String w = _unaccent(p_word.to_lower());
-	if (w.contains("arvore") || w.contains("floresta") || w.contains("planta")) {
+	if (w->contains("arvore") || w->contains("floresta") || w->contains("planta")) {
 		return "nex_arvore.glb";
 	}
-	if (w.contains("personagem") || w.contains("boneco") || w.contains("jogador") || w.contains("npc")) {
+	if (w->contains("personagem") || w->contains("boneco") || w->contains("jogador") || w->contains("npc")) {
 		return "nex_personagem.glb";
 	}
-	if (w.contains("garagem")) {
+	if (w->contains("garagem")) {
 		return "nex_garagem.glb";
 	}
-	if (w.contains("casa") || w.contains("cabana") || w.contains("vila")) {
+	if (w->contains("casa") || w->contains("cabana") || w->contains("vila")) {
 		return "nex_casa.glb";
 	}
-	if (w.contains("predio") || w.contains("hotel") || w.contains("torre") || w.contains("construc")) {
+	if (w->contains("predio") || w->contains("hotel") || w->contains("torre") || w->contains("construc")) {
 		return "nex_predio.glb";
 	}
-	if (w.contains("moto")) {
+	if (w->contains("moto")) {
 		return "nex_moto.glb";
 	}
-	if (w.contains("carro") || w.contains("caminhonete") || w.contains("veiculo")) {
+	if (w->contains("carro") || w->contains("caminhonete") || w->contains("veiculo")) {
 		return "nex_carro_roxo.glb";
 	}
-	if (w.contains("rifle")) {
+	if (w->contains("rifle")) {
 		return "nex_arma_rifle.glb";
 	}
-	if (w.contains("arma") || w.contains("pistola") || w.contains("blaster") || w.contains("tiro")) {
+	if (w->contains("arma") || w->contains("pistola") || w->contains("blaster") || w->contains("tiro")) {
 		return "nex_arma.glb";
 	}
-	if (w.contains("moeda") || w.contains("coin") || w.contains("dinheiro")) {
+	if (w->contains("moeda") || w->contains("coin") || w->contains("dinheiro")) {
 		return "nex_moeda.glb";
 	}
-	if (w.contains("plataforma") || w.contains("chao flutuante")) {
+	if (w->contains("plataforma") || w->contains("chao flutuante")) {
 		return "nex_plataforma.glb";
 	}
-	if (w.contains("parede") || w.contains("muro") || w.contains("cerca")) {
+	if (w->contains("parede") || w->contains("muro") || w->contains("cerca")) {
 		return "nex_parede.glb";
 	}
-	if (w.contains("estrada") || w.contains("rua") || w.contains("pista")) {
+	if (w->contains("estrada") || w->contains("rua") || w->contains("pista")) {
 		return "nex_estrada.glb";
 	}
-	if (w.contains("fonte")) {
+	if (w->contains("fonte")) {
 		return "nex_fonte.glb";
 	}
-	if (w.contains("grama") || w.contains("relva")) {
+	if (w->contains("grama") || w->contains("relva")) {
 		return "nex_grama.glb";
 	}
-	if (w.contains("nuvem")) {
+	if (w->contains("nuvem")) {
 		return "nex_nuvem.glb";
 	}
-	if (w.contains("tenda") || w.contains("barraca")) {
+	if (w->contains("tenda") || w->contains("barraca")) {
 		return "nex_tenda.glb";
 	}
-	if (w.contains("inimigo") || w.contains("monstro") || w.contains("boss")) {
+	if (w->contains("inimigo") || w->contains("monstro") || w->contains("boss")) {
 		return "nex_inimigo.glb";
 	}
-	if (w.contains("bandeira") || w.contains("flag")) {
+	if (w->contains("bandeira") || w->contains("flag")) {
 		return "nex_bandeira.glb";
 	}
 	return nullptr;
@@ -293,55 +309,7 @@ static Node3D *_recipe_tree(const Color &p_copa) {
 }
 
 // Personagem: corpo capsula + colisao + cabeca esfera + 2 bracos.
-static CharacterBody3D *_recipe_char(const Color &p_cor) {
-	CharacterBody3D *chr = memnew(CharacterBody3D);
-	chr->set_name("Personagem");
-	Ref<CapsuleShape3D> csh;
-	csh.instantiate();
-	csh->set_radius(0.35f);
-	csh->set_height(1.1f);
-	CollisionShape3D *cs = memnew(CollisionShape3D);
-	cs->set_name("Colisao");
-	cs->set_shape(csh);
-	cs->set_position(Vector3(0, 0.55f, 0));
-	chr->add_child(cs);
-	Ref<CapsuleMesh> corpo;
-	corpo.instantiate();
-	corpo->set_radius(0.35f);
-	corpo->set_height(0.9f);
-	_add_prim(chr, "Corpo", corpo, Vector3(0, 0.55f, 0), p_cor);
-	Ref<SphereMesh> cabeca;
-	cabeca.instantiate();
-	cabeca->set_radius(0.28f);
-	cabeca->set_height(0.56f);
-	_add_prim(chr, "Cabeca", cabeca, Vector3(0, 1.25f, 0), Color(0.95f, 0.8f, 0.65f));
-	// braco esquerdo
-	Ref<CapsuleMesh> be;
-	be.instantiate();
-	be->set_radius(0.1f);
-	be->set_height(0.6f);
-	_add_prim(chr, "Braco_Esq", be, Vector3(-0.48f, 0.55f, 0), p_cor);
-	// braco direito
-	Ref<CapsuleMesh> bd;
-	bd.instantiate();
-	bd->set_radius(0.1f);
-	bd->set_height(0.6f);
-	_add_prim(chr, "Braco_Dir", bd, Vector3(0.48f, 0.55f, 0), p_cor);
-	// pernas
-	Ref<CapsuleMesh> pe;
-	pe.instantiate();
-	pe->set_radius(0.12f);
-	pe->set_height(0.5f);
-	_add_prim(chr, "Perna_Esq", pe, Vector3(-0.16f, 0.25f, 0), Color(0.15f, 0.15f, 0.2f));
-	Ref<CapsuleMesh> pd;
-	pd.instantiate();
-	pd->set_radius(0.12f);
-	pd->set_height(0.5f);
-	_add_prim(chr, "Perna_Dir", pd, Vector3(0.16f, 0.25f, 0), Color(0.15f, 0.15f, 0.2f));
-	return chr;
-}
-
-// Casa: chao + 4 paredes + porta + 2 janelas + telhado.
+// Casa: chao + 4 paredes + porta + 2 janelas + telhado->
 static Node3D *_recipe_house(const Color &p_parede) {
 	Node3D *casa = memnew(Node3D);
 	casa->set_name("Casa");
@@ -485,35 +453,305 @@ static Node3D *_recipe_platform(const Color &p_cor) {
 	return plat;
 }
 
-// Arma com corpo, cano, cabo e mira (metal de verdade).
-static Node3D *_recipe_gun(const Color &p_cor) {
-	Node3D *arma = memnew(Node3D);
-	arma->set_name("Arma");
-	// corpo
-	Ref<BoxMesh> corpo;
+
+
+// ---------------- v8: receitas CARTOON LIMPAS ---------------------------
+
+// Tipo de arma pelo texto: 0=AR, 1=shotgun, 2=sniper, 3=picareta.
+static int _weapon_type_from_text(const String &p_low) {
+	if (p_low.contains("picareta") || p_low.contains("machado")) {
+		return 3;
+	}
+	if (p_low.contains("sniper") || p_low.contains("precisao")) {
+		return 2;
+	}
+	if (p_low.contains("shotgun") || p_low.contains("escopeta")) {
+		return 1;
+	}
+	return 0; // AR / fuzil padrao
+}
+
+// Material da parede pelo texto: 0=madeira, 1=tijolo, 2=metal.
+static int _wall_mat_from_text(const String &p_low) {
+	if (p_low.contains("metal") || p_low.contains("aco")) {
+		return 2;
+	}
+	if (p_low.contains("tijolo") || p_low.contains("pedra")) {
+		return 1;
+	}
+	return 0;
+}
+
+// Personagem CHIBI: cabeca grande, corpo pequeno, estilo cartoon.
+static CharacterBody3D *_recipe_chibi(const Color &p_roupa, const Color &p_cabelo) {
+	CharacterBody3D *chr = memnew(CharacterBody3D);
+	chr->set_name("Personagem_Chibi");
+	// corpo pequeno
+	Ref<CapsuleMesh> corpo;
 	corpo.instantiate();
-	corpo->set_size(Vector3(0.12f, 0.2f, 0.55f));
-	_add_prim(arma, "Corpo", corpo, Vector3(0, 0, 0.05f), p_cor, 0.65f);
-	// cano
-	Ref<CylinderMesh> cano;
-	cano.instantiate();
-	cano->set_top_radius(0.035f);
-	cano->set_bottom_radius(0.045f);
-	cano->set_height(0.5f);
-	MeshInstance3D *canom = _add_prim(arma, "Cano", cano, Vector3(0, 0.02f, 0.55f), Color(0.15f, 0.15f, 0.18f), 0.85f);
-	canom->set_rotation_degrees(Vector3(90, 0, 0));
-	// cabo
-	Ref<BoxMesh> cabo;
-	cabo.instantiate();
-	cabo->set_size(Vector3(0.1f, 0.24f, 0.13f));
-	MeshInstance3D *cabom = _add_prim(arma, "Cabo", cabo, Vector3(0, -0.18f, -0.18f), Color(0.2f, 0.14f, 0.08f), 0.1f);
-	cabom->set_rotation_degrees(Vector3(-15, 0, 0));
-	// mira
-	Ref<BoxMesh> mira;
-	mira.instantiate();
-	mira->set_size(Vector3(0.04f, 0.05f, 0.12f));
-	_add_prim(arma, "Mira", mira, Vector3(0, 0.14f, 0.05f), Color(0.1f, 0.1f, 0.12f), 0.7f);
+	corpo->set_radius(0.26f);
+	corpo->set_height(0.6f);
+	_add_prim(chr, "Corpo", corpo, Vector3(0, 0.42f, 0), p_roupa);
+	// cabeca GRANDE (chibi!)
+	Ref<SphereMesh> cabeca;
+	cabeca.instantiate();
+	cabeca->set_radius(0.42f);
+	cabeca->set_height(0.84f);
+	_add_prim(chr, "Cabeca", cabeca, Vector3(0, 1.05f, 0), Color(0.96f, 0.78f, 0.62f));
+	// cabelo (meia esfera achatada em cima)
+	Ref<SphereMesh> cbl;
+	cbl.instantiate();
+	cbl->set_radius(0.44f);
+	cbl->set_height(0.5f);
+	_add_prim(chr, "Cabelo", cbl, Vector3(0, 1.16f, -0.03f), p_cabelo);
+	// olhinhos cartoon
+	Ref<SphereMesh> olho;
+	olho.instantiate();
+	olho->set_radius(0.05f);
+	olho->set_height(0.1f);
+	_add_prim(chr, "Olho_Esq", olho, Vector3(-0.13f, 1.08f, 0.38f), Color(0.1f, 0.1f, 0.12f));
+	_add_prim(chr, "Olho_Dir", olho, Vector3(0.13f, 1.08f, 0.38f), Color(0.1f, 0.1f, 0.12f));
+	// bracos curtos
+	Ref<CapsuleMesh> braco;
+	braco.instantiate();
+	braco->set_radius(0.08f);
+	braco->set_height(0.36f);
+	MeshInstance3D *be = _add_prim(chr, "Braco_Esq", braco, Vector3(-0.33f, 0.5f, 0), p_roupa);
+	be->set_rotation_degrees(Vector3(0, 0, 12));
+	MeshInstance3D *bd = _add_prim(chr, "Braco_Dir", braco, Vector3(0.33f, 0.5f, 0), p_roupa);
+	bd->set_rotation_degrees(Vector3(0, 0, -12));
+	// pernas curtas
+	Ref<CapsuleMesh> perna;
+	perna.instantiate();
+	perna->set_radius(0.09f);
+	perna->set_height(0.28f);
+	_add_prim(chr, "Perna_Esq", perna, Vector3(-0.12f, 0.12f, 0), Color(0.2f, 0.2f, 0.28f));
+	_add_prim(chr, "Perna_Dir", perna, Vector3(0.12f, 0.12f, 0), Color(0.2f, 0.2f, 0.28f));
+	// colisao
+	Ref<CapsuleShape3D> sh;
+	sh.instantiate();
+	sh->set_radius(0.45f);
+	sh->set_height(1.6f);
+	CollisionShape3D *cs = memnew(CollisionShape3D);
+	cs->set_name("Colisao");
+	cs->set_shape(sh);
+	cs->set_position(Vector3(0, 0.8f, 0));
+	chr->add_child(cs);
+	return chr;
+}
+
+// Parede de construcao: madeira / tijolo / metal (cores fortes, limpas).
+static StaticBody3D *_recipe_wall(int p_mat) {
+	StaticBody3D *wall = memnew(StaticBody3D);
+	static const char *nomes[3] = { "Parede_Madeira", "Parede_Tijolo", "Parede_Metal" };
+	wall->set_name(nomes[p_mat]);
+	Color cor;
+	float metal = 0.0f;
+	switch (p_mat) {
+		case 1: cor = Color(0.86f, 0.36f, 0.2f); break;  // tijolo
+		case 2: cor = Color(0.62f, 0.68f, 0.78f); metal = 0.9f; break; // metal
+		default: cor = Color(0.68f, 0.45f, 0.2f); break; // madeira
+	}
+	Ref<BoxMesh> vis;
+	vis.instantiate();
+	vis->set_size(Vector3(4, 3, 0.3f));
+	_add_prim(wall, "Visual", vis, Vector3(0, 1.5f, 0), cor, metal);
+	// listras cartoon de leveza
+	Ref<BoxMesh> lista;
+	lista.instantiate();
+	lista->set_size(Vector3(4.02f, 0.18f, 0.34f));
+	Color cor2 = cor.darkened(0.25f);
+	_add_prim(wall, "Listra_1", lista, Vector3(0, 0.9f, 0), cor2, metal);
+	_add_prim(wall, "Listra_2", lista, Vector3(0, 2.1f, 0), cor2, metal);
+	Ref<BoxShape3D> sh;
+	sh.instantiate();
+	sh->set_size(Vector3(4, 3, 0.3f));
+	CollisionShape3D *cs = memnew(CollisionShape3D);
+	cs->set_name("Colisao");
+	cs->set_shape(sh);
+	cs->set_position(Vector3(0, 1.5f, 0));
+	wall->add_child(cs);
+	return wall;
+}
+
+// Bau de loot dourado brilhando (estilo cartoon).
+static Node3D *_recipe_chest() {
+	Node3D *bau = memnew(Node3D);
+	bau->set_name("Bau_Loot");
+	Color ouro(1.0f, 0.8f, 0.15f);
+	// base
+	Ref<BoxMesh> base;
+	base.instantiate();
+	base->set_size(Vector3(1.2f, 0.6f, 0.8f));
+	_add_prim(bau, "Base", base, Vector3(0, 0.3f, 0), ouro, 0.55f);
+	// tampa aberta (girada)
+	Ref<BoxMesh> tampa;
+	tampa.instantiate();
+	tampa->set_size(Vector3(1.2f, 0.28f, 0.8f));
+	MeshInstance3D *tm = _add_prim(bau, "Tampa", tampa, Vector3(0, 0.74f, -0.3f), ouro.darkened(0.1f), 0.55f);
+	tm->set_rotation_degrees(Vector3(-35, 0, 0));
+	// brilho lendario dentro
+	Ref<SphereMesh> brilho;
+	brilho.instantiate();
+	brilho->set_radius(0.16f);
+	brilho->set_height(0.32f);
+	_add_prim(bau, "Brilho", brilho, Vector3(0, 0.55f, 0), Color(1, 0.95f, 0.5f), 0.0f, true);
+	// pes
+	Ref<BoxMesh> pe;
+	pe.instantiate();
+	pe->set_size(Vector3(0.15f, 0.1f, 0.8f));
+	_add_prim(bau, "Pe_Esq", pe, Vector3(-0.5f, 0.05f, 0), Color(0.35f, 0.2f, 0.05f));
+	_add_prim(bau, "Pe_Dir", pe, Vector3(0.5f, 0.05f, 0), Color(0.35f, 0.2f, 0.05f));
+	return bau;
+}
+
+// Armas BONITAS por tipo, cor forte e brilho lendario.
+static Node3D *_recipe_weapon_typed(int p_type, bool p_lendaria) {
+	Node3D *arma = memnew(Node3D);
+	static const char *nomes[4] = { "AR_Dourada", "Shotgun", "Sniper", "Picareta" };
+	arma->set_name(nomes[p_type]);
+	bool brilho = p_lendaria;
+	switch (p_type) {
+		case 1: { // SHOTGUN
+			Ref<BoxMesh> corpo;
+			corpo.instantiate();
+			corpo->set_size(Vector3(0.16f, 0.22f, 0.5f));
+			_add_prim(arma, "Corpo", corpo, Vector3(0, 0, 0), Color(0.85f, 0.4f, 0.08f), 0.4f);
+			Ref<CylinderMesh> cano;
+			cano.instantiate();
+			cano->set_top_radius(0.05f);
+			cano->set_bottom_radius(0.055f);
+			cano->set_height(0.45f);
+			MeshInstance3D *c1 = _add_prim(arma, "Cano_Dir", cano, Vector3(0.05f, 0.05f, 0.42f), Color(0.2f, 0.2f, 0.24f), 0.85f);
+			c1->set_rotation_degrees(Vector3(90, 0, 0));
+			MeshInstance3D *c2 = _add_prim(arma, "Cano_Esq", cano, Vector3(-0.05f, 0.05f, 0.42f), Color(0.2f, 0.2f, 0.24f), 0.85f);
+			c2->set_rotation_degrees(Vector3(90, 0, 0));
+			Ref<BoxMesh> cabo;
+			cabo.instantiate();
+			cabo->set_size(Vector3(0.12f, 0.3f, 0.15f));
+			_add_prim(arma, "Cabo_Madeira", cabo, Vector3(0, -0.2f, -0.2f), Color(0.5f, 0.3f, 0.1f));
+			if (brilho) {
+				Ref<SphereMesh> gl;
+				gl.instantiate();
+				gl->set_radius(0.12f);
+				gl->set_height(0.24f);
+				_add_prim(arma, "Brilho_Lendario", gl, Vector3(0, 0.18f, 0), Color(1, 0.9f, 0.3f), 0.0f, true);
+			}
+			break;
+		}
+		case 2: { // SNIPER
+			Ref<BoxMesh> corpo;
+			corpo.instantiate();
+			corpo->set_size(Vector3(0.1f, 0.16f, 0.6f));
+			_add_prim(arma, "Corpo", corpo, Vector3(0, 0, 0), Color(0.15f, 0.42f, 0.95f), 0.4f);
+			Ref<CylinderMesh> cano;
+			cano.instantiate();
+			cano->set_top_radius(0.03f);
+			cano->set_bottom_radius(0.04f);
+			cano->set_height(0.8f);
+			MeshInstance3D *cm = _add_prim(arma, "Cano_Longo", cano, Vector3(0, 0.02f, 0.68f), Color(0.18f, 0.2f, 0.26f), 0.85f);
+			cm->set_rotation_degrees(Vector3(90, 0, 0));
+			Ref<CylinderMesh> luneta;
+			luneta.instantiate();
+			luneta->set_top_radius(0.05f);
+			luneta->set_bottom_radius(0.05f);
+			luneta->set_height(0.22f);
+			MeshInstance3D *lm = _add_prim(arma, "Luneta", luneta, Vector3(0, 0.14f, 0.05f), Color(0.1f, 0.12f, 0.15f), 0.6f);
+			lm->set_rotation_degrees(Vector3(90, 0, 0));
+			Ref<BoxMesh> cabo;
+			cabo.instantiate();
+			cabo->set_size(Vector3(0.09f, 0.26f, 0.13f));
+			_add_prim(arma, "Cabo", cabo, Vector3(0, -0.16f, -0.24f), Color(0.12f, 0.12f, 0.16f));
+			if (brilho) {
+				Ref<SphereMesh> gl;
+				gl.instantiate();
+				gl->set_radius(0.12f);
+				gl->set_height(0.24f);
+				_add_prim(arma, "Brilho_Lendario", gl, Vector3(0, 0.24f, 0), Color(1, 0.9f, 0.3f), 0.0f, true);
+			}
+			break;
+		}
+		case 3: { // PICARETA
+			Ref<CylinderMesh> cabo;
+			cabo.instantiate();
+			cabo->set_top_radius(0.05f);
+			cabo->set_bottom_radius(0.06f);
+			cabo->set_height(1.0f);
+			MeshInstance3D *cm = _add_prim(arma, "Cabo", cabo, Vector3(0, 0, 0), Color(0.55f, 0.34f, 0.14f));
+			cm->set_rotation_degrees(Vector3(40, 0, 0));
+			Ref<BoxMesh> cabeca;
+			cabeca.instantiate();
+			cabeca->set_size(Vector3(0.6f, 0.16f, 0.16f));
+			MeshInstance3D *hd = _add_prim(arma, "Cabeca", cabeca, Vector3(0, 0.44f, 0.16f), Color(0.72f, 0.75f, 0.82f), 0.9f);
+			hd->set_rotation_degrees(Vector3(40, 0, 0));
+			if (brilho) {
+				Ref<SphereMesh> gl;
+				gl.instantiate();
+				gl->set_radius(0.1f);
+				gl->set_height(0.2f);
+				_add_prim(arma, "Brilho_Lendario", gl, Vector3(0, 0.5f, 0.2f), Color(1, 0.9f, 0.3f), 0.0f, true);
+			}
+			break;
+		}
+		default: { // AR DOURADA
+			Color ouro(1.0f, 0.78f, 0.18f);
+			Ref<BoxMesh> corpo;
+			corpo.instantiate();
+			corpo->set_size(Vector3(0.12f, 0.2f, 0.55f));
+			_add_prim(arma, "Corpo", corpo, Vector3(0, 0, 0.05f), ouro, 0.85f, brilho);
+			Ref<CylinderMesh> cano;
+			cano.instantiate();
+			cano->set_top_radius(0.03f);
+			cano->set_bottom_radius(0.04f);
+			cano->set_height(0.45f);
+			MeshInstance3D *cm = _add_prim(arma, "Cano", cano, Vector3(0, 0.02f, 0.52f), Color(0.2f, 0.2f, 0.24f), 0.85f);
+			cm->set_rotation_degrees(Vector3(90, 0, 0));
+			Ref<BoxMesh> cabo;
+			cabo.instantiate();
+			cabo->set_size(Vector3(0.1f, 0.24f, 0.13f));
+			MeshInstance3D *cb = _add_prim(arma, "Cabo", cabo, Vector3(0, -0.18f, -0.18f), Color(0.2f, 0.14f, 0.08f));
+			cb->set_rotation_degrees(Vector3(-15, 0, 0));
+			Ref<BoxMesh> mira;
+			mira.instantiate();
+			mira->set_size(Vector3(0.04f, 0.06f, 0.14f));
+			_add_prim(arma, "Mira", mira, Vector3(0, 0.15f, 0.05f), Color(0.1f, 0.1f, 0.12f), 0.7f);
+			Ref<BoxMesh> pente;
+			pente.instantiate();
+			pente->set_size(Vector3(0.08f, 0.2f, 0.1f));
+			MeshInstance3D *pm = _add_prim(arma, "Pente", pente, Vector3(0, -0.16f, 0.05f), ouro.darkened(0.15f), 0.85f);
+			pm->set_rotation_degrees(Vector3(-8, 0, 0));
+			if (brilho) {
+				Ref<SphereMesh> gl;
+				gl.instantiate();
+				gl->set_radius(0.13f);
+				gl->set_height(0.26f);
+				_add_prim(arma, "Brilho_Lendario", gl, Vector3(0, 0.2f, 0), Color(1, 0.92f, 0.4f), 0.0f, true);
+			}
+			break;
+		}
+	}
 	return arma;
+}
+
+// Pega todos os MeshInstance3D de sub-arvores cujo nome contem a palavra.
+static void _collect_meshes_by_name(Node *p_node, const String &p_word, Vector<MeshInstance3D *> &r_out, int p_depth) {
+	if (p_node == nullptr || p_depth > 6 || r_out.size() > 500) {
+		return;
+	}
+	if (p_node->get_name().operator String().to_lower().contains(p_word)) {
+		for (int i = 0; i < p_node->get_child_count(); i++) {
+			Node *c = p_node->get_child(i);
+			MeshInstance3D *m = Object::cast_to<MeshInstance3D>(c);
+			if (m != nullptr) {
+				r_out.push_back(m);
+			}
+			_collect_meshes_by_name(c, "", r_out, 99); // pega tudo da sub-arvore
+		}
+		return;
+	}
+	for (int i = 0; i < p_node->get_child_count(); i++) {
+		_collect_meshes_by_name(p_node->get_child(i), p_word, r_out, p_depth + 1);
+	}
 }
 
 // ---------------- plugin ---------------------------------------------------
@@ -554,6 +792,7 @@ NexAIChatPlugin::NexAIChatPlugin() {
 	quick_row = memnew(HBoxContainer);
 	quick_row->add_theme_constant_override("separation", 6);
 	quick_row->add_child(_make_quick_button(TTR("Mapa"), TTR("cria um mapa bonito pra pvp")));
+		quick_row->add_child(_make_quick_button(TTR("BR 1km"), TTR("cria um mapa battle royale gigante de 1 km estilo ilha")));
 	quick_row->add_child(_make_quick_button(TTR("Colisão"), TTR("adiciona colisão no cenário")));
 	quick_row->add_child(_make_quick_button(TTR("Arma"), TTR("cria uma arma bonita")));
 	panel->add_child(quick_row);
@@ -643,7 +882,7 @@ void NexAIChatPlugin::_append_chat(const String &p_who, const String &p_text, co
 void NexAIChatPlugin::_show_tutorial() {
 	_append_chat("NEX", TTR(
 			"Como eu funciono:\n\n"
-			"1) Peça em português normal: \"cria um mapa bonito pra pvp\", \"faz 3 árvores verdes\", \"cria um personagem\", \"faz um carro vermelho grande\", \"monta um lobby\", \"adiciona joystick\"...\n\n"
+			"1) Peça em português normal: \"cria um mapa battle royale gigante\" (ilha de 1 km!), \"cria um mapa pra pvp\", \"faz um personagem chibi\" (ou \"3 skins\"), \"cria um sniper lendário\", \"parede de metal\", \"baú de loot\", \"faz 3 árvores verdes\", \"monta um lobby\", \"pinta as casas de vermelho\"...\n\n"
 			"2) Eu entendo detalhes: cor (verde, vermelho, dourado...), quantidade (até 10) e tamanho (pequeno, grande, gigante).\n\n"
 			"3) Toque em \"SIM, PODE FAZER\" e eu monto tudo AO VIVO na sua cena, com modelos compostos de verdade (árvore com tronco e copa, casa com telhado, carro com rodas), passo a passo.\n\n"
 			"4) Perguntas sobre o editor (salvar, rodar, exportar APK) eu respondo direto.\n\n"
@@ -703,24 +942,65 @@ void NexAIChatPlugin::_classify_and_ask(const String &p_low) {
 	pending_scale = _scale_from_text(p_low);
 
 
-	if (p_low.contains("mapa") || p_low.contains("mundo") || p_low.contains("arena") || p_low.contains("terreno")) {
+	if (p_low.contains("battle royale") || p_low.contains("battleroyale") || p_low.contains("mapa br") ||
+			p_low.contains("mapa gigante") || p_low.contains("mapa enorme") || p_low.contains("ilha") ||
+			p_low.contains("mundo gigante")) {
+		pending_action = ACTION_BR_MAP;
+		_append_chat("NEX", TTR("ILHA BR GIGANTE! Vou montar na sua frente um mapa de 1 km no estilo cartoon limpo: grama bem verde, céu azul, vila, cidade com prédios, posto de gasolina, floresta fofa, estradas, 8 baús de loot dourado e a ZONA girando no meio. E vou apontar a câmera pra tudo aparecer na sua tela. Pode ser?"), NEX_PURPLE_LIGHT);
+	} else if (p_low.contains("pinta") || p_low.contains("pintar") || p_low.contains("muda a cor") || p_low.contains("mudar a cor")) {
+		pending_action = ACTION_RECOLOR;
+		static const char *alvos[] = { "casa", "arvore", "carro", "personagem", "boneco", "bau", "parede", "predio", "muro", "plataforma", "moeda", "cristal", "rampa" };
+		for (const char *a : alvos) {
+			if (p_low.contains(String(a))) {
+				pending_recolor_target = String(a);
+				break;
+			}
+		}
+		if (pending_recolor_target.is_empty()) {
+			pending_recolor_target = "";
+		}
+		_append_chat("NEX", pending_recolor_target.is_empty() ?
+				TTR("Repintar! Qual objeto? Me fala tipo \"pinta as casas de vermelho\" que eu mudo na hora, sem criar nada novo.") :
+				vformat(TTR("Repintar! Vou mudar a cor de tudo que for \"%s\" que já tá na sua cena, sem criar nada novo. Pode ser?"), pending_recolor_target), NEX_PURPLE_LIGHT);
+	} else if (p_low.contains("bau") || p_low.contains("loot") || p_low.contains("cofre")) {
+		pending_action = ACTION_LOOT_CHEST;
+		_append_chat("NEX", vformat(TTR("Baús de loot! Vou montar %d baú(s) dourado(s) brilhando estilo lendário. Pode ser?"), pending_count), NEX_PURPLE_LIGHT);
+	} else if (p_low.contains("escudo") || p_low.contains("pocao") || p_low.contains("poção") || p_low.contains("numero de dano") || p_low.contains("efeito")) {
+		pending_action = ACTION_EFFECT;
+		_append_chat("NEX", TTR("Efeitos bonitos! Vou montar o kit: número de dano pulando, escudo azul em volta do boneco e poção de cura brilhando. Pode ser?"), NEX_PURPLE_LIGHT);
+	} else if (p_low.contains("parede") || p_low.contains("muro") || p_low.contains("construcao de madeira") || p_low.contains("build")) {
+		pending_action = ACTION_WALL;
+		pending_wall_mat = _wall_mat_from_text(p_low);
+		static const char *mats[3] = { "de MADEIRA (marrom)", "de TIJOLO (laranja)", "de METAL (cinza brilhante)" };
+		_append_chat("NEX", vformat(TTR("Parede %s! Vou levantar com colisão, cor forte e limpa. Pode ser?"), String(mats[pending_wall_mat])), NEX_PURPLE_LIGHT);
+	} else if (p_low.contains("mapa") || p_low.contains("mundo") || p_low.contains("arena") || p_low.contains("terreno")) {
 		pending_action = ACTION_MAP;
 		_append_chat("NEX", TTR("Mapa PvP! Vou montar na sua frente, passo a passo: chão com colisão, 4 paredes, luz do sol, céu bonito, árvores, rampa, plataformas, moedas e pontos de spawn. Vai ficar bonito. Pode ser?"), NEX_PURPLE_LIGHT);
 	} else if (p_low.contains("colis") || p_low.contains("bloqueio")) {
 		pending_action = ACTION_COLLISION;
 		_append_chat("NEX", TTR("Colisão! Vou adicionar uma caixa sólida na cena (nada atravessa ela). Pode ser?"), NEX_PURPLE_LIGHT);
-	} else if (p_low.contains("arma") || p_low.contains("tiro") || p_low.contains("weapon") || p_low.contains("gun")) {
+	} else if (p_low.contains("arma") || p_low.contains("tiro") || p_low.contains("weapon") || p_low.contains("gun") ||
+			p_low.contains("picareta") || p_low.contains("fuzil") || p_low.contains("shotgun") ||
+			p_low.contains("escopeta") || p_low.contains("sniper") || p_low.contains("rifle")) {
 		pending_action = ACTION_WEAPON;
-		_append_chat("NEX", TTR("Arma! Vou montar um modelo de verdade: corpo metálico, cano, cabo e mira. Pode ser?"), NEX_PURPLE_LIGHT);
+		pending_weapon_type = _weapon_type_from_text(p_low);
+		pending_weapon_lend = p_low.contains("lendaria") || p_low.contains("lendária") || p_low.contains("lendario") || p_low.contains("brilho");
+		static const char *tipos[4] = { "AR DOURADA", "SHOTGUN", "SNIPER", "PICARETA" };
+		_append_chat("NEX", vformat(TTR("%s! Vou montar bonita, cor forte e estilo cartoon limpo%s. Pode ser?"), String(tipos[pending_weapon_type]), pending_weapon_lend ? TTR(", com BRILHO LENDÁRIO ligado") : TTR("")), NEX_PURPLE_LIGHT);
 	} else if (p_low.contains("arvore") || p_low.contains("floresta")) {
 		pending_action = ACTION_TREE;
 		_append_chat("NEX", vformat(TTR("Árvores! Vou plantar %d árvore(s) de verdade: tronco de madeira e copa esférica %s. Pode ser?"), pending_count, pending_color_valid ? TTR("na cor que você pediu") : TTR("verde")), NEX_PURPLE_LIGHT);
-	} else if (p_low.contains("personagem") || p_low.contains("boneco") || p_low.contains("jogador") || p_low.contains("npc")) {
+	} else if (p_low.contains("personagem") || p_low.contains("boneco") || p_low.contains("jogador") || p_low.contains("npc") || p_low.contains("skin")) {
 		pending_action = ACTION_CHAR;
-		_append_chat("NEX", TTR("Personagem! Vou montar um boneco completo: corpo, cabeça, braços, pernas e colisão pra ele poder se mover com script depois. Pode ser?"), NEX_PURPLE_LIGHT);
+		if (p_low.contains("skin") || p_low.contains("chibi") || p_low.contains("fofo")) {
+			pending_count = 3;
+		}
+		_append_chat("NEX", pending_count >= 3 ?
+				TTR("Boneco CHIBI! Cabeça grande, corpo pequeno, estilo cartoon fofo. Vou montar 3 SKINS de cores diferentes pra você escolher. Pode ser?") :
+				TTR("Boneco CHIBI! Cabeça grande, corpo pequeno, olhinhos e cabelo, estilo cartoon fofo, com colisão pra mover com script depois. Pode ser?"), NEX_PURPLE_LIGHT);
 	} else if (p_low.contains("casa") || p_low.contains("construcao") || p_low.contains("prédio") || p_low.contains("predio")) {
 		pending_action = ACTION_HOUSE;
-		_append_chat("NEX", TTR("Casa! Vou construir de verdade: chão, 4 paredes, porta, janelas iluminadas e telhado. Pode ser?"), NEX_PURPLE_LIGHT);
+		_append_chat("NEX", TTR("Casa! Vou construir de verdade: chão, 4 paredes, porta, janelas iluminadas e telhado-> Pode ser?"), NEX_PURPLE_LIGHT);
 	} else if (p_low.contains("carro") || p_low.contains("veiculo")) {
 		pending_action = ACTION_CAR;
 		_append_chat("NEX", TTR("Carro! Vou montar com corpo metálico, cabine com vidro e 4 rodas. Pode ser?"), NEX_PURPLE_LIGHT);
@@ -765,6 +1045,10 @@ void NexAIChatPlugin::_process_message(const String &p_text) {
 	pending_count = 1;
 	pending_scale = 1.0f;
 	pending_color_valid = false;
+	pending_weapon_type = 0;
+	pending_wall_mat = 0;
+	pending_weapon_lend = false;
+	pending_recolor_target = String();
 
 	String low = _unaccent(txt.to_lower());
 
@@ -778,7 +1062,7 @@ void NexAIChatPlugin::_process_message(const String &p_text) {
 	};
 	for (const char *word : forbidden) {
 		if (low.contains(String(word))) {
-			_append_chat("NEX", TTR("Não posso copiar jogos de outras empresas pra te proteger de processo, mas posso criar um jogo AINDA MELHOR com sua cara. Bora criar um original do mesmo estilo?"), NEX_PURPLE_LIGHT);
+			_append_chat("NEX", TTR("Não posso copiar jogos de outras empresas pra te proteger de processo, mas posso criar um original AINDA MELHOR do mesmo estilo e tamanho. Me pede \"cria um mapa battle royale gigante\" que eu já faço na sua frente!"), NEX_PURPLE_LIGHT);
 			return;
 		}
 	}
@@ -833,7 +1117,9 @@ void NexAIChatPlugin::_start_live() {
 			pending_action == ACTION_CHAR || pending_action == ACTION_HOUSE ||
 			pending_action == ACTION_CAR || pending_action == ACTION_RAMP ||
 			pending_action == ACTION_CRYSTAL || pending_action == ACTION_COIN ||
-			pending_action == ACTION_PLATFORM || pending_action == ACTION_GENERIC);
+			pending_action == ACTION_PLATFORM || pending_action == ACTION_GENERIC ||
+			pending_action == ACTION_BR_MAP || pending_action == ACTION_WALL ||
+			pending_action == ACTION_LOOT_CHEST || pending_action == ACTION_EFFECT);
 	if (needs_3d && Object::cast_to<Node3D>(root) == nullptr) {
 		_append_chat("NEX", TTR("Sua cena atual não é 3D. Toque no + pra criar uma \"Cena 3D\" (a que tem profundidade) e me pede de novo. HUD e Lobby eu consigo criar aqui mesmo."), NEX_PURPLE_LIGHT);
 		pending_action = ACTION_NONE;
@@ -851,12 +1137,19 @@ void NexAIChatPlugin::_start_live() {
 	// cerebro online entendeu (predio, fonte, parede...), 3) procurando
 	// palavras no texto do pedido (modo offline).
 	String low = _unaccent(pending_text.to_lower());
-	const char *asset = _asset_for(pending_action, low);
-	if (asset == nullptr) {
-		asset = _asset_by_object_word(pending_brain_object);
-	}
-	if (asset == nullptr && pending_action == ACTION_GENERIC) {
-		asset = _asset_by_object_word(low);
+	bool use_real = (pending_action == ACTION_TREE || pending_action == ACTION_CHAR ||
+			pending_action == ACTION_HOUSE || pending_action == ACTION_CAR ||
+			pending_action == ACTION_WEAPON || pending_action == ACTION_COIN ||
+			pending_action == ACTION_PLATFORM || pending_action == ACTION_GENERIC);
+	const char *asset = nullptr;
+	if (use_real) {
+		asset = _asset_for(pending_action, low);
+		if (asset == nullptr) {
+			asset = _asset_by_object_word(pending_brain_object);
+		}
+		if (asset == nullptr && pending_action == ACTION_GENERIC) {
+			asset = _asset_by_object_word(low);
+		}
 	}
 	if (asset != nullptr) {
 		pending_asset_file = String(asset);
@@ -883,7 +1176,7 @@ void NexAIChatPlugin::_start_live() {
 			_queue_live(STEP_COLLISION, TTR("Adicionando a caixa de colisão sólida..."));
 			break;
 		case ACTION_WEAPON:
-			_queue_live(STEP_GUN, TTR("Forjando a arma: corpo, cano, cabo e mira..."));
+			_queue_live(STEP_GUN, TTR("Forjando a arma: corpo, cano, cabo e mira->.."));
 			break;
 		case ACTION_TREE:
 			_queue_live(STEP_TREE, TTR("Plantando as árvores..."));
@@ -892,7 +1185,7 @@ void NexAIChatPlugin::_start_live() {
 			_queue_live(STEP_CHAR, TTR("Montando o personagem: corpo, cabeça, braços e pernas..."));
 			break;
 		case ACTION_HOUSE:
-			_queue_live(STEP_HOUSE, TTR("Construindo a casa: paredes, porta, janelas e telhado..."));
+			_queue_live(STEP_HOUSE, TTR("Construindo a casa: paredes, porta, janelas e telhado->.."));
 			break;
 		case ACTION_CAR:
 			_queue_live(STEP_CAR, TTR("Montando o carro: lataria, vidros e rodas..."));
@@ -915,6 +1208,28 @@ void NexAIChatPlugin::_start_live() {
 		case ACTION_LOBBY:
 			_queue_live(STEP_LOBBY, TTR("Montando o lobby: fundo, título e botão JOGAR..."));
 			break;
+		case ACTION_BR_MAP:
+			_queue_live(STEP_BR_TERRAIN, TTR("Nivelando 1 KM de grama bem verde com colisão e pintando o céu azul limpo..."));
+			_queue_live(STEP_BR_TOWN, TTR("Construindo a VILINHA: 6 casinhas fofas..."));
+			_queue_live(STEP_BR_CITY, TTR("Erguendo a CIDADE: 4 prédios com janelas acesas..."));
+			_queue_live(STEP_BR_GAS, TTR("Montando o POSTO: garagens e carrões coloridos..."));
+			_queue_live(STEP_BR_FOREST, TTR("Plantando a FLORESTA fofa..."));
+			_queue_live(STEP_BR_ROADS, TTR("Abrindo as ESTRADAS cruzando a ilha..."));
+			_queue_live(STEP_BR_LOOT, TTR("Espalhando 8 BAÚS DE LOOT dourados brilhando..."));
+			_queue_live(STEP_BR_ZONE, TTR("Ligando a ZONA no centro da ilha..."));
+			break;
+		case ACTION_WALL:
+			_queue_live(STEP_WALL, TTR("Levantando a parede sólida..."));
+			break;
+		case ACTION_LOOT_CHEST:
+			_queue_live(STEP_CHEST, TTR("Montando os baús dourados lendários..."));
+			break;
+		case ACTION_EFFECT:
+			_queue_live(STEP_EFFECT, TTR("Soltando os efeitos: dano, escudo e poção..."));
+			break;
+		case ACTION_RECOLOR:
+			_queue_live(STEP_RECOLOR, TTR("Repintando o que já existe na cena..."));
+			break;
 		default:
 			_queue_live(STEP_GENERIC, TTR("Criando o objeto na cena..."));
 			break;
@@ -926,6 +1241,12 @@ void NexAIChatPlugin::_live_next_step() {
 	if (live_index >= live_total) {
 		// Fim: mensagem de conclusao por acao.
 		switch (pending_action) {
+			case ACTION_BR_MAP:
+				_append_chat("NEX", TTR("PRONTINHO! ILHA BR de 1 KM montada: grama verde, céu azul, vilinha, cidade, posto, floresta, estradas, 8 baús de loot e a ZONA. A câmera já tá apontando pra ilha, olha a cena!"), NEX_PURPLE_LIGHT);
+				break;
+			case ACTION_RECOLOR:
+				_append_chat("NEX", TTR("PRONTINHO! Tudo repintado."), NEX_PURPLE_LIGHT);
+				break;
 			case ACTION_MAP:
 				_append_chat("NEX", TTR("PRONTINHO! Mapa PvP montado: chão, 4 paredes, sol, céu, árvores, rampa, plataformas, moedas e spawns. Vê a aba da cena 3D (perspectiva). Salva no menu Projeto pra não perder!"), NEX_PURPLE_LIGHT);
 				break;
@@ -945,6 +1266,8 @@ void NexAIChatPlugin::_live_next_step() {
 				_append_chat("NEX", TTR("PRONTINHO! Tá na sua cena. Salva no menu Projeto pra não perder!"), NEX_PURPLE_LIGHT);
 				break;
 		}
+		// Aponta a camera do editor pro que foi criado (aparece NA TELA).
+		_focus_scene();
 		pending_action = ACTION_NONE;
 		live_total = 0;
 		return;
@@ -957,6 +1280,10 @@ void NexAIChatPlugin::_live_next_step() {
 	Node *mapa = nullptr;
 	if (root != nullptr && root->has_node(NodePath("Mapa_PvP"))) {
 		mapa = root->get_node(NodePath("Mapa_PvP"));
+	}
+	Node *ilha = nullptr;
+	if (root != nullptr && root->has_node(NodePath("Ilha_BR"))) {
+		ilha = root->get_node(NodePath("Ilha_BR"));
 	}
 	Color cor = pending_color_valid ? pending_color : NEX_PURPLE;
 
@@ -1136,14 +1463,21 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_GUN: {
-		if (pending_have_real && _spawn_real(root, "Arma_Real", 2.0f)) {
-			break;
-		}
-
-			Node3D *arma = _recipe_gun(pending_color_valid ? cor : Color(0.2f, 0.12f, 0.32f));
+			// ARMA BONITA (v8): AR dourada / Shotgun / Sniper / Picareta,
+			// cor forte e brilho lendario. Modelo real so se baixou e o
+			// pedido nao pediu tipo especifico.
+			String lowg = _unaccent(pending_text.to_lower());
+			bool tipado = pending_weapon_type != 0 || pending_weapon_lend ||
+					lowg.contains("picareta") || lowg.contains("shotgun") || lowg.contains("escopeta") ||
+					lowg.contains("sniper") || lowg.contains("dourada") || lowg.contains("lendaria") || lowg.contains("lendária");
+			if (pending_have_real && !tipado && _spawn_real(root, "Arma_Real", 2.0f)) {
+				break;
+			}
+			bool lend = pending_weapon_lend || (pending_color_valid && (cor.r > 0.8f && cor.g > 0.6f && cor.b < 0.4f));
+			Node3D *arma = _recipe_weapon_typed(pending_weapon_type, lend);
 			arma->set_position(Vector3(1, 1, 0));
 			arma->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
-			_add_node_live(root, arma, TTR("NEX: criar arma"));
+			_add_node_live(root, arma, TTR("NEX: criar arma bonita"));
 			break;
 		}
 		case STEP_HUD: {
@@ -1227,13 +1561,42 @@ void NexAIChatPlugin::_live_next_step() {
 			break;
 		}
 		case STEP_CHAR: {
-		if (pending_have_real && _spawn_real(root, "Personagem_Real", 2.5f)) {
-			break;
-		}
-
-			CharacterBody3D *chr = _recipe_char(pending_color_valid ? cor : Color(0.4f, 0.25f, 0.85f));
-			chr->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
-			_add_node_live(root, chr, TTR("NEX: criar personagem"));
+			// CHIBI (v8): cabeca grande, corpo pequeno. Modelo real so se
+			// baixou E o pedido nao pediu cor/skins (a cor e a alma do chibi).
+			String lowc = _unaccent(pending_text.to_lower());
+			bool quer_chibi = pending_color_valid || pending_count >= 3 || lowc.contains("chibi") || lowc.contains("fofo") || lowc.contains("skin");
+			if (pending_have_real && !quer_chibi && pending_count == 1 && _spawn_real(root, "Personagem_Real", 2.5f)) {
+				break;
+			}
+			static const Color skins_corpo[3] = {
+				Color(0.2f, 0.45f, 0.95f), Color(0.9f, 0.18f, 0.18f), Color(0.95f, 0.75f, 0.15f)
+			};
+			static const Color skins_cabelo[3] = {
+				Color(0.1f, 0.15f, 0.4f), Color(0.35f, 0.18f, 0.05f), Color(0.95f, 0.85f, 0.3f)
+			};
+			int n = CLAMP(pending_count, 1, 3);
+			Node3D *grupo = nullptr;
+			if (n > 1) {
+				grupo = memnew(Node3D);
+				grupo->set_name("Skins");
+			}
+			for (int i = 0; i < n; i++) {
+				Color corpo = pending_color_valid ? cor : skins_corpo[i % 3];
+				CharacterBody3D *c = _recipe_chibi(corpo, skins_cabelo[i % 3]);
+				if (n > 1) {
+					c->set_name(String("Skin_") + (i == 0 ? "Azul" : (i == 1 ? "Vermelha" : "Dourada")));
+					c->set_position(Vector3((i - 1) * 2.5f, 0, 0));
+				}
+				c->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
+				if (grupo != nullptr) {
+					grupo->add_child(c);
+				} else {
+					_add_node_live(root, c, TTR("NEX: criar personagem chibi"));
+				}
+			}
+			if (grupo != nullptr) {
+				_add_node_live(root, grupo, TTR("NEX: criar skins chibi"));
+			}
 			break;
 		}
 		case STEP_HOUSE: {
@@ -1303,6 +1666,360 @@ void NexAIChatPlugin::_live_next_step() {
 			_add_node_live(root, grupo, TTR("NEX: criar plataformas"));
 			break;
 		}
+		case STEP_BR_TERRAIN: {
+			Node3D *br = memnew(Node3D);
+			br->set_name("Ilha_BR");
+			// grama bem verde (1 km x 1 km) com colisao
+			StaticBody3D *grama = memnew(StaticBody3D);
+			grama->set_name("Grama");
+			Ref<PlaneMesh> pm;
+			pm.instantiate();
+			pm->set_size(Size2(1000, 1000));
+			_add_prim(grama, "Grama_Visual", pm, Vector3(0, 0, 0), Color(0.36f, 0.78f, 0.32f));
+			Ref<BoxShape3D> gsh;
+			gsh.instantiate();
+			gsh->set_size(Vector3(1000, 1, 1000));
+			CollisionShape3D *gcs = memnew(CollisionShape3D);
+			gcs->set_name("Colisao");
+			gcs->set_shape(gsh);
+			gcs->set_position(Vector3(0, -0.5f, 0));
+			grama->add_child(gcs);
+			br->add_child(grama);
+			// sol quentinho
+			DirectionalLight3D *sol = memnew(DirectionalLight3D);
+			sol->set_name("Sol");
+			sol->set_rotation_degrees(Vector3(-50, -35, 0));
+			sol->set_light_color(Color(1.0f, 0.96f, 0.88f));
+			sol->set_light_energy(1.15f);
+			br->add_child(sol);
+			// ceu azul estilizado limpo
+			Ref<ProceduralSkyMaterial> psm;
+			psm.instantiate();
+			psm->set_sky_top_color(Color(0.25f, 0.55f, 1.0f));
+			psm->set_sky_horizon_color(Color(0.7f, 0.87f, 1.0f));
+			psm->set_ground_bottom_color(Color(0.3f, 0.65f, 0.3f));
+			psm->set_ground_horizon_color(Color(0.55f, 0.8f, 0.55f));
+			Ref<Sky> sky;
+			sky.instantiate();
+			sky->set_material(psm);
+			Ref<Environment> env;
+			env.instantiate();
+			env->set_background(Environment::BG_SKY);
+			env->set_sky(sky);
+			env->set_ambient_source(Environment::AMBIENT_SOURCE_SKY);
+			env->set_ambient_light_energy(1.1f);
+			WorldEnvironment *we = memnew(WorldEnvironment);
+			we->set_name("Ceu_Azul");
+			we->set_environment(env);
+			br->add_child(we);
+			_add_node_live(root, br, TTR("NEX: criar ilha BR (terreno e ceu)"));
+			break;
+		}
+		case STEP_BR_TOWN: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *vila = memnew(Node3D);
+			vila->set_name("Vilinha");
+			static const Vector3 pos_vila[6] = {
+				Vector3(-120, 0, -100), Vector3(-95, 0, -100), Vector3(-120, 0, -75),
+				Vector3(-95, 0, -75), Vector3(-107, 0, -122), Vector3(-108, 0, -55)
+			};
+			static const Color cores_vila[3] = {
+				Color(0.95f, 0.9f, 0.8f), Color(0.9f, 0.75f, 0.6f), Color(0.85f, 0.88f, 0.95f)
+			};
+			for (int i = 0; i < 6; i++) {
+				Node3D *casa = _recipe_house(cores_vila[i % 3]);
+				casa->set_name("Casinha_" + String::num_int64(i + 1));
+				casa->set_position(pos_vila[i]);
+				casa->set_scale(Vector3(2.0f, 2.0f, 2.0f));
+				vila->add_child(casa);
+			}
+			_add_node_live(parent, vila, TTR("NEX: vila da ilha BR"));
+			break;
+		}
+		case STEP_BR_CITY: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *city = memnew(Node3D);
+			city->set_name("Cidade");
+			static const Vector3 pos_city[4] = {
+				Vector3(120, 0, -120), Vector3(160, 0, -120), Vector3(120, 0, -160), Vector3(160, 0, -160)
+			};
+			static const float alt_city[4] = { 30, 45, 60, 38 };
+			static const Color cores_city[4] = {
+				Color(0.55f, 0.75f, 0.95f), Color(0.7f, 0.6f, 0.9f),
+				Color(0.95f, 0.85f, 0.55f), Color(0.65f, 0.85f, 0.8f)
+			};
+			for (int i = 0; i < 4; i++) {
+				Node3D *predio = memnew(Node3D);
+				predio->set_name("Predio_" + String::num_int64(i + 1));
+				float alt = alt_city[i];
+				Ref<BoxMesh> corpo;
+				corpo.instantiate();
+				corpo->set_size(Vector3(14, alt, 14));
+				_add_prim(predio, "Corpo", corpo, Vector3(0, alt / 2.0f, 0), cores_city[i], 0.1f);
+				// faixas de janelas acesas (cartoon limpo)
+				Ref<BoxMesh> faixa;
+				faixa.instantiate();
+				faixa->set_size(Vector3(14.1f, 1.2f, 14.1f));
+				int n_faixas = (int)(alt / 8.0f);
+				for (int j = 1; j <= n_faixas; j++) {
+					_add_prim(predio, "Janelas_" + String::num_int64(j), faixa,
+							Vector3(0, j * 8.0f - 4.0f, 0), Color(1.0f, 0.95f, 0.6f), 0.0f, true);
+				}
+				// topo
+				Ref<BoxMesh> topo;
+				topo.instantiate();
+				topo->set_size(Vector3(16, 1.5f, 16));
+				_add_prim(predio, "Topo", topo, Vector3(0, alt + 0.75f, 0), cores_city[i].darkened(0.2f));
+				predio->set_position(pos_city[i]);
+				city->add_child(predio);
+			}
+			_add_node_live(parent, city, TTR("NEX: cidade da ilha BR"));
+			break;
+		}
+		case STEP_BR_GAS: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *posto = memnew(Node3D);
+			posto->set_name("Posto");
+			// 2 garagens
+			static const Vector3 pos_gar[2] = { Vector3(120, 0, 120), Vector3(145, 0, 122) };
+			for (int i = 0; i < 2; i++) {
+				Node3D *gar = memnew(Node3D);
+				gar->set_name("Garagem_" + String::num_int64(i + 1));
+				Ref<BoxMesh> corpo;
+				corpo.instantiate();
+				corpo->set_size(Vector3(10, 5, 8));
+				_add_prim(gar, "Corpo", corpo, Vector3(0, 2.5f, 0), Color(0.72f, 0.75f, 0.85f), 0.2f);
+				Ref<BoxMesh> porta;
+				porta.instantiate();
+				porta->set_size(Vector3(4, 3.5f, 0.3f));
+				_add_prim(gar, "Portao", porta, Vector3(0, 1.75f, 4.05f), Color(0.4f, 0.45f, 0.6f));
+				Ref<BoxMesh> telhado;
+				telhado.instantiate();
+				telhado->set_size(Vector3(11, 0.8f, 9));
+				_add_prim(gar, "Telhado", telhado, Vector3(0, 5.4f, 0), Color(0.85f, 0.3f, 0.2f));
+				gar->set_position(pos_gar[i]);
+				gar->set_scale(Vector3(2.0f, 2.0f, 2.0f));
+				posto->add_child(gar);
+			}
+			// 3 carros coloridos
+			static const Vector3 pos_car[3] = { Vector3(110, 0, 150), Vector3(130, 0, 155), Vector3(150, 0, 148) };
+			static const Color cores_car[3] = { Color(0.9f, 0.15f, 0.15f), Color(0.15f, 0.45f, 0.9f), Color(0.95f, 0.8f, 0.1f) };
+			for (int i = 0; i < 3; i++) {
+				Node3D *car = _recipe_car(cores_car[i]);
+				car->set_name("Carro_" + String::num_int64(i + 1));
+				car->set_position(pos_car[i]);
+				posto->add_child(car);
+			}
+			_add_node_live(parent, posto, TTR("NEX: posto da ilha BR"));
+			break;
+		}
+		case STEP_BR_FOREST: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *floresta = memnew(Node3D);
+			floresta->set_name("Floresta");
+			static const Vector3 pos_flo[12] = {
+				Vector3(-150, 0, 100), Vector3(-130, 0, 130), Vector3(-170, 0, 140),
+				Vector3(-110, 0, 160), Vector3(-180, 0, 90), Vector3(-90, 0, 120),
+				Vector3(-160, 0, 190), Vector3(-120, 0, 200), Vector3(-200, 0, 160),
+				Vector3(-80, 0, 175), Vector3(-140, 0, 90), Vector3(-175, 0, 200)
+			};
+			for (int i = 0; i < 12; i++) {
+				Node3D *arv = _recipe_tree(Color(0.22f, 0.72f, 0.25f));
+				arv->set_name("Arvore_Fofa_" + String::num_int64(i + 1));
+				arv->set_position(pos_flo[i]);
+				float s = 1.6f + (i % 3) * 0.5f;
+				arv->set_scale(Vector3(s, s, s));
+				floresta->add_child(arv);
+			}
+			_add_node_live(parent, floresta, TTR("NEX: floresta da ilha BR"));
+			break;
+		}
+		case STEP_BR_ROADS: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *estradas = memnew(Node3D);
+			estradas->set_name("Estradas");
+			Ref<BoxMesh> via;
+			via.instantiate();
+			via->set_size(Vector3(700, 0.2f, 12));
+			_add_prim(estradas, "Via_X", via, Vector3(0, 0.1f, 0), Color(0.55f, 0.55f, 0.6f));
+			Ref<BoxMesh> via2;
+			via2.instantiate();
+			via2->set_size(Vector3(12, 0.2f, 700));
+			_add_prim(estradas, "Via_Z", via2, Vector3(0, 0.12f, 0), Color(0.55f, 0.55f, 0.6f));
+			Ref<BoxMesh> linha;
+			linha.instantiate();
+			linha->set_size(Vector3(700, 0.05f, 0.8f));
+			_add_prim(estradas, "Faixa_X", linha, Vector3(0, 0.24f, 0), Color(1.0f, 0.9f, 0.2f));
+			Ref<BoxMesh> linha2;
+			linha2.instantiate();
+			linha2->set_size(Vector3(0.8f, 0.05f, 700));
+			_add_prim(estradas, "Faixa_Z", linha2, Vector3(0, 0.26f, 0), Color(1.0f, 0.9f, 0.2f));
+			_add_node_live(parent, estradas, TTR("NEX: estradas da ilha BR"));
+			break;
+		}
+		case STEP_BR_LOOT: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *loot = memnew(Node3D);
+			loot->set_name("Loot");
+			static const Vector3 pos_loot[8] = {
+				Vector3(-107, 0, -88), Vector3(140, 0, -140), Vector3(130, 0, 130),
+				Vector3(-150, 0, 140), Vector3(0, 0, 60), Vector3(-40, 0, -60),
+				Vector3(60, 0, 40), Vector3(0, 0, -220)
+			};
+			for (int i = 0; i < 8; i++) {
+				Node3D *bau = _recipe_chest();
+				bau->set_name("Bau_" + String::num_int64(i + 1));
+				bau->set_position(pos_loot[i]);
+				loot->add_child(bau);
+			}
+			// 2 pontos de spawn verdes brilhando
+			for (int i = 0; i < 2; i++) {
+				Ref<CylinderMesh> sp;
+				sp.instantiate();
+				sp->set_top_radius(3.0f);
+				sp->set_bottom_radius(3.0f);
+				sp->set_height(0.15f);
+				_add_prim(loot, "Spawn_" + String::num_int64(i + 1), sp,
+						Vector3(i == 0 ? -220.0f : 220.0f, 0.18f, 0), Color(0.1f, 0.9f, 0.3f), 0.0f, true);
+			}
+			_add_node_live(parent, loot, TTR("NEX: loot e spawns da ilha BR"));
+			break;
+		}
+		case STEP_BR_ZONE: {
+			Node *parent = ilha != nullptr ? ilha : root;
+			Node3D *zona = memnew(Node3D);
+			zona->set_name("Zona_BR");
+			Ref<CylinderMesh> cil;
+			cil.instantiate();
+			cil->set_top_radius(60);
+			cil->set_bottom_radius(60);
+			cil->set_height(90);
+			Ref<StandardMaterial3D> zmat;
+			zmat.instantiate();
+			zmat->set_albedo(Color(0.45f, 0.35f, 0.95f, 0.22f));
+			zmat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
+			zmat->set_feature(StandardMaterial3D::FEATURE_EMISSION, true);
+			zmat->set_emission(Color(0.45f, 0.25f, 0.9f));
+			zmat->set_emission_energy_multiplier(1.5f);
+			MeshInstance3D *zm = memnew(MeshInstance3D);
+			zm->set_name("Cupula");
+			zm->set_mesh(cil);
+			zm->set_material_override(zmat);
+			zm->set_position(Vector3(0, 45, 0));
+			zona->add_child(zm);
+			_add_node_live(parent, zona, TTR("NEX: zona da ilha BR"));
+			break;
+		}
+		case STEP_WALL: {
+			StaticBody3D *wall = _recipe_wall(pending_wall_mat);
+			Node3D *grupo = memnew(Node3D);
+			grupo->set_name("Paredes_Construcao");
+			for (int i = 0; i < pending_count; i++) {
+				StaticBody3D *w = _recipe_wall(pending_wall_mat);
+				w->set_position(Vector3((i - pending_count / 2.0f) * 5.0f, 0, 0));
+				w->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
+				grupo->add_child(w);
+			}
+			memdelete(wall);
+			_add_node_live(root, grupo, TTR("NEX: parede de construcao"));
+			break;
+		}
+		case STEP_CHEST: {
+			Node3D *grupo = memnew(Node3D);
+			grupo->set_name("Baus_Loot");
+			for (int i = 0; i < pending_count; i++) {
+				Node3D *bau = _recipe_chest();
+				bau->set_name("Bau_Loot_" + String::num_int64(i + 1));
+				bau->set_position(Vector3((i - pending_count / 2.0f) * 2.5f, 0, 0));
+				bau->set_scale(Vector3(pending_scale, pending_scale, pending_scale));
+				grupo->add_child(bau);
+			}
+			_add_node_live(root, grupo, TTR("NEX: baus de loot"));
+			break;
+		}
+		case STEP_EFFECT: {
+			Node3D *fx = memnew(Node3D);
+			fx->set_name("Efeitos");
+			// 1) numero de dano pulando (cartoon)
+			Label3D *dano = memnew(Label3D);
+			dano->set_name("Dano_100");
+			dano->set_text("100!");
+			dano->set_font_size(48);
+			dano->set_modulate(Color(1.0f, 0.55f, 0.1f));
+			dano->set_outline_size(12);
+			dano->set_modulate(Color(1.0f, 0.55f, 0.1f));
+			dano->set_billboard_mode(StandardMaterial3D::BILLBOARD_ENABLED);
+			dano->set_position(Vector3(0, 2.2f, 0));
+			fx->add_child(dano);
+			// 2) escudo azul em volta do boneco (translucido)
+			Ref<SphereMesh> esc;
+			esc.instantiate();
+			esc->set_radius(1.1f);
+			esc->set_height(2.2f);
+			Ref<StandardMaterial3D> emat;
+			emat.instantiate();
+			emat->set_albedo(Color(0.25f, 0.55f, 1.0f, 0.3f));
+			emat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
+			emat->set_feature(StandardMaterial3D::FEATURE_EMISSION, true);
+			emat->set_emission(Color(0.2f, 0.5f, 1.0f));
+			emat->set_emission_energy_multiplier(1.2f);
+			MeshInstance3D *escudo = memnew(MeshInstance3D);
+			escudo->set_name("Escudo_Azul");
+			escudo->set_mesh(esc);
+			escudo->set_material_override(emat);
+			escudo->set_position(Vector3(2.5f, 1.1f, 0));
+			fx->add_child(escudo);
+			// 3) pocao de cura roxa brilhando
+			Node3D *pocao = memnew(Node3D);
+			pocao->set_name("Pocao_Cura");
+			Ref<CylinderMesh> frasco;
+			frasco.instantiate();
+			frasco->set_top_radius(0.22f);
+			frasco->set_bottom_radius(0.3f);
+			frasco->set_height(0.55f);
+			_add_prim(pocao, "Frasco", frasco, Vector3(0, 0.28f, 0), Color(0.75f, 0.25f, 0.95f), 0.0f, true);
+			Ref<CylinderMesh> gargalo;
+			gargalo.instantiate();
+			gargalo->set_top_radius(0.1f);
+			gargalo->set_bottom_radius(0.12f);
+			gargalo->set_height(0.2f);
+			_add_prim(pocao, "Gargalo", gargalo, Vector3(0, 0.62f, 0), Color(0.9f, 0.9f, 0.95f));
+			Ref<CylinderMesh> rolha;
+			rolha.instantiate();
+			rolha->set_top_radius(0.11f);
+			rolha->set_bottom_radius(0.11f);
+			rolha->set_height(0.08f);
+			_add_prim(pocao, "Rolha", rolha, Vector3(0, 0.76f, 0), Color(0.6f, 0.4f, 0.2f));
+			pocao->set_position(Vector3(5, 0, 0));
+			fx->add_child(pocao);
+			_add_node_live(root, fx, TTR("NEX: efeitos (dano, escudo, pocao)"));
+			break;
+		}
+		case STEP_RECOLOR: {
+			if (pending_recolor_target.is_empty() || !pending_color_valid) {
+				_append_chat("NEX", TTR("Preciso saber o alvo e a cor, tipo \"pinta as casas de vermelho\"."), NEX_PURPLE_LIGHT);
+				break;
+			}
+			Vector<MeshInstance3D *> alvos;
+			if (root != nullptr) {
+				_collect_meshes_by_name(root, pending_recolor_target, alvos, 0);
+			}
+			if (alvos.is_empty()) {
+				_append_chat("NEX", vformat(TTR("Não achei nada chamado \"%s\" na cena ainda. Cria primeiro que depois eu pinto!"), pending_recolor_target), NEX_PURPLE_LIGHT);
+				break;
+			}
+			EditorUndoRedoManager *undo_redo = EditorUndoRedoManager::get_singleton();
+			undo_redo->create_action_for_history(TTR("NEX: repintar objetos"), EditorNode::get_editor_data().get_current_edited_scene_history_id());
+			for (int i = 0; i < alvos.size(); i++) {
+				Ref<Material> old_mat = alvos[i]->get_material_override();
+				Ref<StandardMaterial3D> nm = _mat(pending_color, 0.15f);
+				undo_redo->add_do_method(alvos[i], "set_material_override", nm);
+				undo_redo->add_undo_method(alvos[i], "set_material_override", old_mat);
+			}
+			undo_redo->commit_action();
+			_append_chat("NEX", vformat(TTR("Prontinho: %d peça(s) repintada(s) de %s!"), alvos.size(), pending_color.to_html(false)), NEX_PURPLE_LIGHT);
+			break;
+		}
 		default: { // STEP_GENERIC
 			if (pending_have_real && _spawn_real(root, "Objeto_Real", 3.0f)) {
 				break;
@@ -1325,6 +2042,44 @@ void NexAIChatPlugin::_live_next_step() {
 		// Pausa entre passos pra dar o efeito "fazendo ao vivo".
 		get_tree()->create_timer(0.9f)->connect("timeout", callable_mp(this, &NexAIChatPlugin::_live_next_step));
 	}
+}
+
+void NexAIChatPlugin::_focus_scene() {
+	Node *root = EditorNode::get_singleton()->get_edited_scene();
+	Node3D *r3 = Object::cast_to<Node3D>(root);
+	if (r3 == nullptr) {
+		return; // cena 2D (HUD/lobby): nada a focar
+	}
+	SubViewport *vp = EditorInterface::get_singleton()->get_editor_viewport_3d(0);
+	if (vp == nullptr) {
+		return;
+	}
+	Camera3D *cam = vp->get_camera_3d();
+	if (cam == nullptr) {
+		return;
+	}
+	// centro e tamanho aproximado da cena (varre filhos 3D).
+	Vector3 centro = r3->get_global_position();
+	Vector3 min = centro;
+	Vector3 max = centro;
+	int achados = 0;
+	for (int i = 0; i < r3->get_child_count() && achados < 60; i++) {
+		Node3D *c = Object::cast_to<Node3D>(r3->get_child(i));
+		if (c == nullptr) {
+			continue;
+		}
+		Vector3 p = c->get_global_position();
+		min = min.min(p);
+		max = max.max(p);
+		achados++;
+	}
+	centro = (min + max) * 0.5f;
+	Vector3 tam = (max - min).abs();
+	float raio = MAX(tam.x, tam.z) * 0.75f + 10.0f;
+	// posiciona a camera olhando pro centro (a 40 graus, bem cinematografico).
+	Vector3 dir = Vector3(0.65f, 0.75f, 0.65f).normalized();
+	cam->set_global_position(centro + dir * raio);
+	cam->look_at(centro, Vector3(0, 1, 0));
 }
 
 bool NexAIChatPlugin::_add_node_live(Node *p_parent, Node *p_child, const String &p_action_name) {
@@ -1425,7 +2180,29 @@ void NexAIChatPlugin::_apply_brain_command(const Dictionary &p_cmd) {
 			pending_color_valid = true;
 		}
 	}
-	if (obj == "mapa") {
+	if (obj == "mapa_br") {
+		pending_action = ACTION_BR_MAP;
+	} else if (obj == "bau") {
+		pending_action = ACTION_LOOT_CHEST;
+	} else if (obj == "escudo" || obj == "pocao") {
+		pending_action = ACTION_EFFECT;
+	} else if (obj == "recolor") {
+		pending_action = ACTION_RECOLOR;
+		static const char *alvos[] = { "casa", "arvore", "carro", "personagem", "boneco", "bau", "parede", "predio", "muro", "plataforma", "moeda", "cristal", "rampa" };
+		for (const char *a : alvos) {
+			if (low.contains(String(a))) {
+				pending_recolor_target = String(a);
+				break;
+			}
+		}
+	} else if (obj == "parede") {
+		pending_action = ACTION_WALL;
+		pending_wall_mat = _wall_mat_from_text(low);
+	} else if (obj == "arma") {
+		pending_action = ACTION_WEAPON;
+		pending_weapon_type = _weapon_type_from_text(low);
+		pending_weapon_lend = low.contains("lendaria") || low.contains("lendario") || low.contains("brilho");
+	} else if (obj == "mapa") {
 		pending_action = ACTION_MAP;
 	} else if (obj == "arvore") {
 		pending_action = ACTION_TREE;

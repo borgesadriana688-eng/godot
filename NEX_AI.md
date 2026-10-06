@@ -135,6 +135,27 @@ MODELOS 3D REAIS DA INTERNET:
 PENDENTE: definir a secret KRYNO_API_KEY (chave gratuita do Groq:
 console.groq.com) no backend pra ligar o cérebro.
 
+## 7.3 v8: ESTILO CARTOON LIMPINHO + ILHA BR DE 1 KM (v0.5)
+PEDIDOS QUE A NEX ATENDE AGORA:
+- MAPA BR GIGANTE ("cria um mapa battle royale gigante" / "ilha"): 1 km de
+  grama bem verde, ceu azul estilizado, vilinha de 6 casinhas, cidade com
+  4 predios de janelas acesas, posto com garagens e carros coloridos,
+  floresta fofa de 12 arvores, estradas com faixa amarela, 8 BAUS DE LOOT
+  dourados, 2 spawns e a ZONA (cupula azul translucida no centro).
+- PERSONAGEM CHIBI: cabeca grande, corpo pequeno, olhinhos e cabelo;
+  "3 skins" = azul, vermelha e dourada de uma vez.
+- ARMAS BONITAS: AR DOURADA, Shotgun (cano duplo), Sniper (luneta),
+  Picareta; cor forte e limpa; "lendária" = brilho emissivo dourado.
+- PAREDES DE CONSTRUCAO: madeira (marrom), tijolo (laranja), metal
+  (cinza brilhante), com colisao.
+- BAU DE LOOT DOURADO com tampa aberta e brilho dentro.
+- EFEITOS: numero de dano pulando (Label3D "100!"), escudo azul
+  translucido, pocao de cura brilhando.
+- REPINTAR ("pinta as casas de vermelho"): muda a cor do que JA EXISTE
+  na cena, com undo, sem criar nada novo.
+- CAMERA: ao terminar qualquer criacao 3D a NEX APONTA A CAMERA DO
+  EDITOR pro que criou, entao o lobby/mapa APARECE NA TELA na hora.
+
 ## 8. FRASE DE EFEITO DA NEXUS
 > "A NEXUS não é só uma engine, é sua parceira que faz o jogo com você."
 

@@ -39,6 +39,11 @@ public:
 		ACTION_CRYSTAL,
 		ACTION_COIN,
 		ACTION_PLATFORM,
+		ACTION_BR_MAP,
+		ACTION_WALL,
+		ACTION_LOOT_CHEST,
+		ACTION_EFFECT,
+		ACTION_RECOLOR,
 		ACTION_GENERIC,
 	};
 
@@ -66,6 +71,13 @@ private:
 	String pending_asset_file;
 	String pending_asset_url;
 	String pending_brain_object;
+
+	// v8: tipo de arma (0=AR, 1=shotgun, 2=sniper, 3=picareta),
+	// material da parede (0=madeira, 1=tijolo, 2=metal) e alvo de repintura.
+	int pending_weapon_type = 0;
+	int pending_wall_mat = 0;
+	bool pending_weapon_lend = false;
+	String pending_recolor_target;
 	String _asset_save_path;
 	bool pending_have_real = false;
 	class HTTPRequest *_brain_req = nullptr;
@@ -92,6 +104,7 @@ private:
 	void _on_permission(bool p_allow);
 	void _start_live();
 	void _live_next_step();
+	void _focus_scene();
 	void _queue_live(int p_kind, const String &p_narration);
 	bool _add_node_live(Node *p_parent, Node *p_child, const String &p_action_name);
 
